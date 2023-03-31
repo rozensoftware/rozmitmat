@@ -1,0 +1,22 @@
+[package]
+name = "rozmitmat"
+version = "0.1.0"
+edition = "2021"
+authors = ["Rozen Software <rozsoft@wp.pl>"]
+keywords = ["arp", "spoofing", "spying", "sniffer"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.17"
+env_logger = "0.10.0"
+libc = "0.2"
+pcap = "1.0.0"
+ctrlc = "3.2.5"
+clap = { version = "4.2.1", features = ["derive", "cargo"] }
+
+[profile.release]
+strip = true
+panic = "abort"
