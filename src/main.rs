@@ -1,30 +1,15 @@
-//install libpcap-dev
-
 extern crate libc;
-extern crate env_logger;
 
 use std::{net::Ipv4Addr, sync::{Arc, atomic::AtomicBool, atomic::Ordering}};
 use clap::{arg, Command};
 
 mod util;
 mod arpspoof;
-
-#[macro_use]
-extern crate log;
+mod headers;
+mod dns;
 
 fn main() 
 {
-    env_logger::init();
-
-    info!("Starting");
-    
-    //check if are root
-    if unsafe { libc::geteuid() } != 0
-    {
-        println!("You must be root to run this program");
-        return;
-    }
-
     // Get command parameters
     let args = Command::new("rozmitmat")
         .version("rozmitmat 0.1.0")
@@ -39,8 +24,15 @@ fn main()
     let target_ip = args.get_one::<String>("target").unwrap();
     let gateway_ip = args.get_one::<String>("gateway").unwrap();
 
+    //check if are root
+    if unsafe { libc::geteuid() } != 0
+    {
+        println!("You must be root to run this program");
+        return;
+    }
+
     //Create arp spoof object
-    let arp_spoof = arpspoof::ARPSpoof::new(interface_name.clone());
+    let arp_spoof = arpspoof::ArpSpoof::new(interface_name.clone());
 
     //Read own ip
     let my_ip = arp_spoof.get_own_ip();

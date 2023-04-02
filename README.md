@@ -6,6 +6,24 @@ This is a Rust implementation of an ARP spoof attack.
 Currently this is a work in progress; the main functionality of the program is working fine though.
 
 Rozmitmat is a vision of a hacking tool I am developing for a knowledge gathering about how network and Linux/Windows systems work.
+It is working on Linux only.
+
+## Building
+
+Install libpcap-dev:
+
+```bash
+sudo apt-get install libpcap-dev
+```
+
+## Usage
+
+```bash
+sudo ./rozmitmat --interface eth0 --target 192.168.0.22 --gateway 192.168.0.1
+```
+*interface* is the name of the network interface you want to use as the input device
+*target* is the target IP of the computer you want to hack
+*gateway* is the router IP
 
 ## License
 
