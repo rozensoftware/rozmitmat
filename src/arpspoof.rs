@@ -9,6 +9,64 @@ use pcap::Device;
 
 use crate::util::{mac_to_string, pcap_open};
 
+struct IpHeader
+{
+    pub version: u8,
+    pub ihl: u8,
+    pub tos: u8,
+    pub total_length: u16,
+    pub identification: u16,
+    pub flags: u8,
+    pub fragment_offset: u16,
+    pub ttl: u8,
+    pub protocol: u8,
+    pub header_checksum: u16,
+    pub source_ip: Ipv4Addr,
+    pub dest_ip: Ipv4Addr,
+}
+
+impl IpHeader
+{
+    pub fn new() -> IpHeader
+    {
+        IpHeader
+        {
+            version: 0,
+            ihl: 0,
+            tos: 0,
+            total_length: 0,
+            identification: 0,
+            flags: 0,
+            fragment_offset: 0,
+            ttl: 0,
+            protocol: 0,
+            header_checksum: 0,
+            source_ip: Ipv4Addr::new(0, 0, 0, 0),
+            dest_ip: Ipv4Addr::new(0, 0, 0, 0),
+        }
+    }
+
+    pub fn from_raw(bytes: &[u8]) -> IpHeader
+    {
+        let mut ip_header = IpHeader::new();
+
+        ip_header.version = bytes[0] >> 4;
+        ip_header.ihl = bytes[0] & 0x0F;
+        ip_header.tos = bytes[1];
+        ip_header.total_length = u16::from_be_bytes([bytes[2], bytes[3]]);
+        ip_header.identification = u16::from_be_bytes([bytes[4], bytes[5]]);
+        ip_header.flags = bytes[6] >> 5;
+        ip_header.fragment_offset = u16::from_be_bytes([bytes[6] & 0x1F, bytes[7]]);
+        ip_header.ttl = bytes[8];
+        ip_header.protocol = bytes[9];
+        ip_header.header_checksum = u16::from_be_bytes([bytes[10], bytes[11]]);
+        ip_header.source_ip = Ipv4Addr::new(bytes[12], bytes[13], bytes[14], bytes[15]);
+        ip_header.dest_ip = Ipv4Addr::new(bytes[16], bytes[17], bytes[18], bytes[19]);
+
+        ip_header
+    }
+}
+
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Ethernet 
@@ -28,6 +86,23 @@ impl Ethernet
             source_mac,
             ether_type: u16::to_be(0x0806),
         }
+    }
+
+    pub fn from_raw(ethernet_header: &[u8]) -> Option<Ethernet> 
+    {
+        if ethernet_header.len() < 14 
+        {
+            return None;
+        }
+
+        let mut array = [0u8; 14];
+    
+        for (&x, p) in ethernet_header.iter().zip(array.iter_mut()) 
+        {
+            *p = x;
+        }
+    
+        unsafe { Some(mem::transmute::<[u8; 14], Ethernet>(array)) }
     }
 }
 
@@ -158,8 +233,8 @@ impl ARPSpoof
         target_mac.copy_from_slice(&mac_a);
         gateway_mac.copy_from_slice(&mac_b);
 
-        println!("Target MAC: {}", mac_to_string(&target_mac));
-        println!("Gateway MAC: {}", mac_to_string(&gateway_mac));
+        println!("[*] Target MAC: {}", mac_to_string(&target_mac));
+        println!("[*] Gateway MAC: {}", mac_to_string(&gateway_mac));
 
         // Enable traffic logging
         if log_traffic 
@@ -236,7 +311,7 @@ impl ARPSpoof
 
         if let Err(e) = cap.sendpacket(packet.to_raw().as_ref()) 
         {
-            println!("Unable to send packet: {}", e);
+            println!("[!] Unable to send packet: {}", e);
             return;
         }
 
@@ -245,7 +320,7 @@ impl ARPSpoof
 
         if let Err(e) = cap.sendpacket(packet.to_raw().as_ref()) 
         {
-            println!("Unable to send packet: {}", e);
+            println!("[!] Unable to send packet: {}", e);
             return;
         }
     }
@@ -268,7 +343,7 @@ impl ARPSpoof
             {
                 if fail_counter >= max_fails 
                 {
-                    println!(" -> {} seems to be offline", ip_addr);
+                    println!("[!] -> {} seems to be offline", ip_addr);
                     return None;
                 }
 
@@ -287,7 +362,7 @@ impl ARPSpoof
 
                         if arp_header.op_code == u16::to_be(0x2) && ip_addr == dest_ip 
                         {
-                            println!(" -> found {} at {}", mac_to_string(&arp_header.source_mac),ip_addr);
+                            println!("[*] -> found {} at {}", mac_to_string(&arp_header.source_mac),ip_addr);
                             return Some(arp_header.source_mac);
                         }
                     }
@@ -331,14 +406,28 @@ pub fn log_traffic_pcap(cap: &mut pcap::Capture<pcap::Active>, log_file: &Path, 
     loop 
     {
         let packet = cap.next_packet()?;
-        
+
         savefile.write(&packet);
         savefile.flush()?;
 
         if last_print.elapsed() > print_threshold 
         {
+            //find source and destination ip addresses
+            let ip_header = IpHeader::from_raw(&packet.data[14..34]);
+            let src_ip = ip_header.source_ip;
+            let dst_ip = ip_header.dest_ip;
+
+            //find source and destination mac addresses
+            let eth_header = Ethernet::from_raw(&packet.data[0..14]).unwrap();
+            let src_mac = mac_to_string(&eth_header.source_mac);
+            let dst_mac = mac_to_string(&eth_header.dest_mac);
+
+            println!("[*] Source IP {} -> Destination IP {} ({} -> {})", src_ip, dst_ip, src_mac, dst_mac);
+
             let stats = cap.stats()?;
+
             println!("\r[*] Received: {}, dropped: {}, if_dropped: {}", stats.received, stats.dropped, stats.if_dropped);
+
             last_print = Instant::now()
         }
 

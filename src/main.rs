@@ -44,11 +44,11 @@ fn main()
 
     //Read own ip
     let my_ip = arp_spoof.get_own_ip();
-    println!("My IP: {:?}", my_ip);
+    println!("[*] My IP: {:?}", my_ip);
 
     //Read own MAC
     let my_mac = util::get_interface_mac_addr(&interface_name);    
-    println!("My MAC: {:?}", util::mac_to_string(&my_mac));
+    println!("[*] My MAC: {:?}", util::mac_to_string(&my_mac));
 
     util::ip_forward(true).expect("Unable to enable ip forwarding");
 
