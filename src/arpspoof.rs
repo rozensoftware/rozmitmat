@@ -244,12 +244,6 @@ pub fn log_traffic_pcap(cap: &mut pcap::Capture<pcap::Active>, log_file: &Path, 
         savefile.write(&packet);
         savefile.flush()?;
 
-        match dns::extract_dns_query(&packet.data) 
-        {
-            Some(query) => println!("[*] DNS query: {}", query),
-            None => (),
-        }
-
         let (answers, questions) = dns::decode_dns(&packet.data);
         if answers.is_some()
         {
