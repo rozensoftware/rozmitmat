@@ -2,6 +2,21 @@ use rustdns::Message;
 
 use crate::util;
 
+#[derive(Debug)]
+pub struct DnsAnswer
+{
+    pub name: String,
+    pub ip: String,
+    pub ttl: u32,
+}
+
+#[derive(Debug)]
+pub struct DnsQuery
+{
+    pub name: String,
+    pub ip: String,
+}
+
 //Check is it a DNS packet
 /// # Arguments
 /// * `data` - The packet data
@@ -62,12 +77,12 @@ pub fn extract_dns_query(data: &[u8]) -> Option<String>
     Some(dns_query)
 }
 
-pub fn decode_dns(data: &[u8]) -> Option<String>
+pub fn decode_dns(data: &[u8]) -> (Option<Vec<DnsAnswer>>, Option<Vec<DnsQuery>>)
 {
     if !is_dns_packet(data) 
     {
         //decode_dns: not a DNS packet
-        return None;
+        return (None, None);
     }
 
     let dns_header = &data[34..42];
@@ -76,11 +91,29 @@ pub fn decode_dns(data: &[u8]) -> Option<String>
     if dns_flags & 0x8000 == 0 
     {
         //decode_dns: not a DNS response
-        return None;
+        return (None, None);
     }
 
     let dns = &data[42..];
 
-    let m = Message::from_slice(&dns);
-    m.ok().map(|m| m.to_string())
+    let d = match Message::from_slice(&dns)
+    {
+        Ok(d) => d,
+        Err(_) => return (None, None),
+    };
+
+    let answers = d.answers.iter().map(|a| DnsAnswer
+    {
+        name: a.name.to_string(),
+        ip: "".to_string(),
+        ttl: a.ttl.subsec_millis(),
+    }).collect();
+
+    let queries = d.questions.iter().map(|q| DnsQuery
+    {
+        name: q.name.to_string(),
+        ip: "".to_string(),
+    }).collect();
+
+    (Some(answers), Some(queries))
 }

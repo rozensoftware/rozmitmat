@@ -250,10 +250,14 @@ pub fn log_traffic_pcap(cap: &mut pcap::Capture<pcap::Active>, log_file: &Path, 
             None => (),
         }
 
-        match dns::decode_dns(&packet.data)
+        let (answers, questions) = dns::decode_dns(&packet.data);
+        if answers.is_some()
         {
-            Some(dns) => println!("[*] DNS response: {}", dns),
-            None => (),
+            answers.iter().for_each(|a| println!("[*] DNS answer: {:?}", a));
+        }
+        if questions.is_some()
+        {
+            questions.iter().for_each(|q| println!("[*] DNS question: {:?}", q));
         }
 
         if last_print.elapsed() > print_threshold 
