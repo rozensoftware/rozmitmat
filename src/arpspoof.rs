@@ -247,11 +247,11 @@ pub fn log_traffic_pcap(cap: &mut pcap::Capture<pcap::Active>, log_file: &Path, 
         let (answers, questions) = dns::decode_dns(&packet.data);
         if answers.is_some()
         {
-            answers.iter().for_each(|a| println!("[*] DNS answer: {:?}", a));
+            answers.iter().for_each(|a| println!("[*] {:?}", a));
         }
         if questions.is_some()
         {
-            questions.iter().for_each(|q| println!("[*] DNS question: {:?}", q));
+            questions.iter().for_each(|q| println!("[*] {:?}", q));
         }
 
         if last_print.elapsed() > print_threshold 

@@ -14,7 +14,6 @@ pub struct DnsAnswer
 pub struct DnsQuery
 {
     pub name: String,
-    pub ip: String,
 }
 
 //Check is it a DNS packet
@@ -56,14 +55,13 @@ pub fn decode_dns(data: &[u8]) -> (Option<Vec<DnsAnswer>>, Option<Vec<DnsQuery>>
     let answers = d.answers.iter().map(|a| DnsAnswer
     {
         name: a.name.to_string(),
-        ip: "".to_string(),
+        ip: a.resource.to_string(),
         ttl: a.ttl.subsec_millis(),
     }).collect();
 
     let queries = d.questions.iter().map(|q| DnsQuery
     {
         name: q.name.to_string(),
-        ip: "".to_string(),
     }).collect();
 
     (Some(answers), Some(queries))
