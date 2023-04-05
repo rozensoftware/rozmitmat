@@ -13,11 +13,12 @@ use crate::util::{mac_to_string, pcap_open, self};
 pub struct ArpSpoof
 {
     device: Device,
+    verbose: bool,
 }
 
 impl ArpSpoof
 {
-    pub fn new(interface_name: String) -> ArpSpoof
+    pub fn new(interface_name: String, verbose: bool) -> ArpSpoof
     {
         //Create a device
         let all_devices = Device::list().expect("Unable to get device list");
@@ -26,6 +27,7 @@ impl ArpSpoof
         ArpSpoof
         {
             device: d.clone(),
+            verbose,
         }
     }
 
@@ -84,9 +86,10 @@ impl ArpSpoof
             let mut log_cap = pcap_open(self.device.clone(), &log_cap_filter).unwrap();
             
             let r = running.clone();
+            let v = self.verbose;
 
             thread::spawn(move || {
-                log_traffic_pcap(&mut log_cap, &log_file, &r).expect("Unable to write packets to file")
+                log_traffic_pcap(&mut log_cap, &log_file, &r, v).expect("Unable to write packets to file")
             });
         }
 
@@ -230,8 +233,47 @@ impl ArpSpoof
     }
 }
 
+fn print_dns_info(packet: &pcap::Packet) 
+{
+    let (answers, questions) = dns::decode_dns(&packet.data);
+
+    if questions.is_some()
+    {
+        questions.iter().for_each(|q| {
+            for i in q
+            {
+                println!("[*] Question: name: {}", i.name);
+            }
+        });
+    }
+    if answers.is_some()
+    {
+        answers.iter().for_each(|a| {
+            for i in a
+            {
+                println!("[*] Answer: name: {}, ip: {}, ttl: {}", i.name, i.ip, i.ttl);
+            }
+        });
+    }
+}
+
+fn print_src_dst_address(packet: &pcap::Packet) 
+{
+    //find source and destination ip addresses
+    let ip_header = IpHeader::from_raw(&packet.data[14..34]);
+    let src_ip = ip_header.source_ip;
+    let dst_ip = ip_header.dest_ip;
+
+    //find source and destination mac addresses
+    let eth_header = Ethernet::from_raw(&packet.data[0..14]).unwrap();
+    let src_mac = mac_to_string(&eth_header.source_mac);
+    let dst_mac = mac_to_string(&eth_header.dest_mac);
+
+    println!("[*] Source IP {} -> Destination IP {} ({} -> {})", src_ip, dst_ip, src_mac, dst_mac);
+}
+
 /// Logs traffic to the given pcap file and prints a short network statistic
-pub fn log_traffic_pcap(cap: &mut pcap::Capture<pcap::Active>, log_file: &Path, running: &Arc<AtomicBool>) -> Result<(), pcap::Error> 
+pub fn log_traffic_pcap(cap: &mut pcap::Capture<pcap::Active>, log_file: &Path, running: &Arc<AtomicBool>, verbose: bool) -> Result<(), pcap::Error> 
 {
     let mut savefile = cap.savefile(log_file)?;
     let mut last_print = Instant::now();
@@ -244,30 +286,21 @@ pub fn log_traffic_pcap(cap: &mut pcap::Capture<pcap::Active>, log_file: &Path, 
         savefile.write(&packet);
         savefile.flush()?;
 
-        let (answers, questions) = dns::decode_dns(&packet.data);
-        if answers.is_some()
+        print_dns_info(&packet);
+
+        let c = util::get_http_body(&packet.data);
+        if c.len() > 0
         {
-            answers.iter().for_each(|a| println!("[*] {:?}", a));
+            println!("[*] HTTP Body: {}", c);
         }
-        if questions.is_some()
+
+        if verbose 
         {
-            questions.iter().for_each(|q| println!("[*] {:?}", q));
+            print_src_dst_address(&packet);
         }
 
         if last_print.elapsed() > print_threshold 
         {
-            //find source and destination ip addresses
-            let ip_header = IpHeader::from_raw(&packet.data[14..34]);
-            let src_ip = ip_header.source_ip;
-            let dst_ip = ip_header.dest_ip;
-
-            //find source and destination mac addresses
-            let eth_header = Ethernet::from_raw(&packet.data[0..14]).unwrap();
-            let src_mac = mac_to_string(&eth_header.source_mac);
-            let dst_mac = mac_to_string(&eth_header.dest_mac);
-
-            println!("[*] Source IP {} -> Destination IP {} ({} -> {})", src_ip, dst_ip, src_mac, dst_mac);
-
             let stats = cap.stats()?;
 
             println!("\r[*] Received: {}, dropped: {}, if_dropped: {}", stats.received, stats.dropped, stats.if_dropped);

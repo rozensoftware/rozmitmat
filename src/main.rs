@@ -1,7 +1,7 @@
 extern crate libc;
 
 use std::{net::Ipv4Addr, sync::{Arc, atomic::AtomicBool, atomic::Ordering}};
-use clap::{arg, Command};
+use clap::{arg, Command, Arg};
 
 mod util;
 mod arpspoof;
@@ -18,11 +18,15 @@ fn main()
         .arg(arg!(--interface <VALUE>).required(true).short('i').help("Interface name"))
         .arg(arg!(--target <VALUE>).required(true).short('t').help("Target IP address"))
         .arg(arg!(--gateway <VALUE>).required(true).short('g').help("Gateway IP address"))
+        .arg(Arg::new("verbose").short('v').long("verbose").default_value("0").help("Verbose mode"))
         .get_matches();
 
     let interface_name = args.get_one::<String>("interface").unwrap();
     let target_ip = args.get_one::<String>("target").unwrap();
     let gateway_ip = args.get_one::<String>("gateway").unwrap();
+    let verbose = args.get_one::<String>("verbose").unwrap();
+
+    println!("verbose: {}", verbose);
 
     //check if are root
     if unsafe { libc::geteuid() } != 0
@@ -32,7 +36,7 @@ fn main()
     }
 
     //Create arp spoof object
-    let arp_spoof = arpspoof::ArpSpoof::new(interface_name.clone());
+    let arp_spoof = arpspoof::ArpSpoof::new(interface_name.clone(), verbose == "1");
 
     //Read own ip
     let my_ip = arp_spoof.get_own_ip();
