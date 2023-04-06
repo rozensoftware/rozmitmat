@@ -288,10 +288,12 @@ pub fn log_traffic_pcap(cap: &mut pcap::Capture<pcap::Active>, log_file: &Path, 
 
         print_dns_info(&packet);
 
-        let c = util::get_http_body(&packet.data);
-        if c.len() > 0
+        if let Some(c) = util::get_http_body(&packet.data)
         {
-            println!("[*] HTTP Body: {}", c);
+            if c.len() > 0
+            {
+                println!("[*] HTTP Body: {}", c);
+            }
         }
 
         if verbose 

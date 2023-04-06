@@ -26,7 +26,10 @@ fn main()
     let gateway_ip = args.get_one::<String>("gateway").unwrap();
     let verbose = args.get_one::<String>("verbose").unwrap();
 
-    println!("verbose: {}", verbose);
+    if verbose == "0"
+    {
+        println!("Verbose mode is disabled");
+    }
 
     //check if are root
     if unsafe { libc::geteuid() } != 0

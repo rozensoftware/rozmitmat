@@ -163,14 +163,24 @@ pub(crate) fn read_protocol_type(data: &[u8]) -> u16
 /// * `data` - The packet data
 /// # Returns
 /// * `String` - The http body
-pub fn get_http_body(data: &[u8]) -> String
+pub fn get_http_body(data: &[u8]) -> Option<String>
 {
+    if is_http_packet(data) == false
+    {
+        return None;
+    }
+
     let mut body = String::new();
     let mut i = 0;
     let mut found = false;
+    let packet_length = data.len();
 
     for byte in data
     {
+        if i + 4 >= packet_length
+        {
+            break;
+        }
         if *byte == 0x0D && data[i + 1] == 0x0A && data[i + 2] == 0x0D && data[i + 3] == 0x0A
         {
             found = true;
@@ -187,7 +197,7 @@ pub fn get_http_body(data: &[u8]) -> String
         }
     }
 
-    body
+    Some(body)
 }
 
 
