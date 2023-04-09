@@ -129,18 +129,6 @@ pub fn string_to_mac(string: &str) -> [u8; 6]
     mac_addr
 }
 
-/// Check if the packet is an HTTP packet
-///
-/// # Arguments
-/// * `data` - The packet data
-/// # Returns
-/// * `bool` - True if the packet is an HTTP packet
-pub fn is_http_packet(data: &[u8]) -> bool 
-{
-    let protocol_type = read_protocol_type(data);
-    protocol_type == 0x0800 && data[23] == 0x06
-}
-
 ///Reads protocol type based on the input packet data
 /// # Arguments
 /// * `data` - The packet data
@@ -158,70 +146,16 @@ pub(crate) fn read_protocol_type(data: &[u8]) -> u16
     u16::from_be_bytes(array)
 }
 
-/// Get http body from packet data
-/// # Arguments
-/// * `data` - The packet data
-/// # Returns
-/// * `String` - The http body
-pub fn get_http_body(data: &[u8]) -> Option<String>
-{
-    if is_http_packet(data) == false
-    {
-        return None;
-    }
-
-    let mut body = String::new();
-    let mut i = 0;
-    let mut found = false;
-    let packet_length = data.len();
-
-    for byte in data
-    {
-        if i + 4 >= packet_length
-        {
-            break;
-        }
-        if *byte == 0x0D && data[i + 1] == 0x0A && data[i + 2] == 0x0D && data[i + 3] == 0x0A
-        {
-            found = true;
-            break;
-        }
-        i += 1;
-    }
-
-    if found
-    {
-        for byte in &data[i + 4..]
-        {
-            body.push(*byte as char);
-        }
-    }
-
-    Some(body)
-}
-
-
-///check if the packet is an ARP packet
-/// # Arguments
-/// * `data` - The packet data
-/// # Returns
-/// * `bool` - True if the packet is an ARP packet
-pub fn is_arp_packet(data: &[u8]) -> bool
-{
-    let protocol_type = read_protocol_type(data);
-    protocol_type == 0x0806
-}
-
 ///Check if the packet is TCP
 /// # Arguments
 /// * `data` - The packet data
 /// # Returns
 /// * `bool` - True if the packet is TCP (IPv4)
-pub fn is_tcp_packet(data: &[u8]) -> bool
-{
-    let protocol_type = read_protocol_type(data);
-    protocol_type == 0x0800
-}
+// pub fn is_tcp_packet(data: &[u8]) -> bool
+// {
+//     let protocol_type = read_protocol_type(data);
+//     protocol_type == 0x0800
+// }
 
 ///Reads MAC address from ARP cache
 /// # Arguments

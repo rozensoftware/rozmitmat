@@ -7,6 +7,7 @@ mod util;
 mod arpspoof;
 mod headers;
 mod dns;
+mod http;
 
 fn main() 
 {

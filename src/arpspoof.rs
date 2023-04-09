@@ -6,7 +6,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use pcap::Device;
 
-use crate::dns;
+use crate::{dns, http};
 use crate::headers::{ArpHeader, ArpType, IpHeader, Ethernet};
 use crate::util::{mac_to_string, pcap_open, self};
 
@@ -288,7 +288,7 @@ pub fn log_traffic_pcap(cap: &mut pcap::Capture<pcap::Active>, log_file: &Path, 
 
         print_dns_info(&packet);
 
-        if let Some(c) = util::get_http_body(&packet.data)
+        if let Some(c) = http::get_http_body(&packet.data)
         {
             if c.len() > 0
             {
