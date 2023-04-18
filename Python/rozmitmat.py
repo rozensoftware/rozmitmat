@@ -52,6 +52,9 @@ def main(args):
         print("[*] Gateway MAC: {}".format(gatewayMAC))
         print("[*] Target MAC: {}".format(targetMAC))
 
+        if gatewayMAC is None or targetMAC is None:
+            raise Exception("Unable to read MAC addresses")
+        
         arp_poisoning = ARPSpoof(args.gatewayIP, gatewayMAC, args.targetIP, targetMAC)
         arp_thread = arp_poisoning.start()
 
@@ -95,7 +98,8 @@ def main(args):
     return exit_code
 
 #sudo apt-get install build-essential python3-dev libnetfilter-queue-dev
-#pip install NetfilterQueue
+#pip3 install NetfilterQueue
+#pip3 install scapy
 
 if __name__ == "__main__":
     args = arg_parser()
