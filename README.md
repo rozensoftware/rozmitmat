@@ -5,6 +5,7 @@ Version: 0.1.0
 This is a Rust implementation of an ARP spoof attack and Python implementation of a DNS spoof attack..
 
 Rozmitmat is a vision of a hacking tool I am developing for a knowledge gathering about how network and Linux/Windows systems work.
+
 It is working on Linux only.
 
 ## Building
@@ -78,3 +79,7 @@ I am always glad to learn from anyone.
 If you want to contribute, you are more than welcome to be a part of the project! Try to share you thoughts first! Feel free to open a new issue if you want to discuss new ideas.
 
 Any kind of feedback is welcome!
+
+
+The work is based on the (https://github.com/gcarq/arp-spoof) repository.
+
