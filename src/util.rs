@@ -1,6 +1,8 @@
+//#![allow(dead_code)]
+
 use std::fs::{File, OpenOptions};
 use std::io::{Error, Read, Write};
-
+use std::process::Command;
 use pcap::Device;
 
 /// Opens a pcap device
@@ -33,8 +35,6 @@ pub fn ip_forward(enable: bool) -> Result<(), Error>
 {
     const IPV4_FW_PATH: &str = "/proc/sys/net/ipv4/ip_forward";
 
-    debug!("Enabling ipv4 forwarding: {}", enable);
-
     let ipv4_fw_path = IPV4_FW_PATH;
     let ipv4_fw_value = match enable {
         true => "1\n",
@@ -62,8 +62,6 @@ pub fn ip_forward(enable: bool) -> Result<(), Error>
 /// * `[u8; 6]` - mac address
 pub fn get_interface_mac_addr(interface_name: &str) -> [u8; 6] 
 {
-    debug!("Getting mac address of {}", interface_name);
-
     let path = format!("/sys/class/net/{}/address", interface_name);
     let mut mac_addr_buf = String::new();
     
@@ -90,8 +88,6 @@ pub fn get_interface_mac_addr(interface_name: &str) -> [u8; 6]
 /// * `String` - mac address as a string
 pub fn mac_to_string(mac_addr: &[u8; 6]) -> String 
 {
-    debug!("Converting mac address to string: {:?}", mac_to_string(&mac_addr));
-
     mac_addr
         .iter()
         .map(|b| format!("{:02X}", b))
@@ -110,8 +106,6 @@ pub fn mac_to_string(mac_addr: &[u8; 6]) -> String
 /// * `[u8; 6]` - mac address
 pub fn string_to_mac(string: &str) -> [u8; 6] 
 {
-    debug!("Converting string to mac address: {}", string);
-
     let hx: Vec<u8> = string
         .split(':')
         .map(|b| u8::from_str_radix(b, 16).unwrap())
@@ -133,4 +127,81 @@ pub fn string_to_mac(string: &str) -> [u8; 6]
     }
     
     mac_addr
+}
+
+///Reads protocol type based on the input packet data
+/// # Arguments
+/// * `data` - The packet data
+/// # Returns
+/// * `u16` - The protocol type
+pub(crate) fn read_protocol_type(data: &[u8]) -> u16
+{
+    let mut array = [0u8; 2];
+
+    for (&x, p) in data[12..14].iter().zip(array.iter_mut()) 
+    {
+        *p = x;
+    }
+
+    u16::from_be_bytes(array)
+}
+
+///Check if the packet is TCP
+/// # Arguments
+/// * `data` - The packet data
+/// # Returns
+/// * `bool` - True if the packet is TCP (IPv4)
+// pub fn is_tcp_packet(data: &[u8]) -> bool
+// {
+//     let protocol_type = read_protocol_type(data);
+//     protocol_type == 0x0800
+// }
+
+///Reads MAC address from ARP cache
+/// # Arguments
+/// * `ip` - The IP address
+/// # Returns
+/// * `Option<[u8; 6]>` - The MAC address
+pub fn read_arp_cache(ip: &str) -> Option<[u8; 6]>
+{
+    let arp_cache = Command::new("arp")
+        .arg("-n")
+        .output()
+        .expect("failed to execute process");
+
+    let arp_cache = String::from_utf8(arp_cache.stdout).unwrap();
+    let arp_cache = arp_cache.split('\n');
+
+    for line in arp_cache 
+    {
+        let line = line.trim();
+
+        if line.is_empty() 
+        {
+            continue;
+        }
+
+        let line = line.split_whitespace().collect::<Vec<&str>>();
+
+        if line[0] == ip 
+        {
+            return Some(string_to_mac(line[2]));
+        }
+    }
+
+    None
+}
+
+#[cfg(test)]
+mod tests
+{
+    use super::*;
+
+    #[test]
+    fn test_read_arp_cache()
+    {
+        let mac = read_arp_cache("192.168.0.1");
+
+        assert!(mac.is_some());
+    }
 }
