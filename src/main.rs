@@ -32,7 +32,7 @@ fn main()
         println!("Verbose mode is disabled");
     }
 
-    //check if are root
+    //check if we are root
     if unsafe { libc::geteuid() } != 0
     {
         println!("You must be root to run this program");

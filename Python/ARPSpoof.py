@@ -12,7 +12,7 @@ class ARPSpoof:
 
         self.run = False
     
-    def __str__(self):
+    def __str__(self) -> str:
         return "ARPSpoof"    
 
     def restore_target(self):
@@ -21,7 +21,7 @@ class ARPSpoof:
 
         print("[*] MAC addresses of the gateway and the target have been restored")
 
-    def start(self):
+    def start(self) -> threading.Thread:
         th = threading.Thread(target=self.__poison_target)
         th.daemon = True
         th.start()
