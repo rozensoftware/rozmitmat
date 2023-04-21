@@ -46,6 +46,8 @@ sudo ./rozmitmat --interface eth0 --target 192.168.0.22 --gateway 192.168.0.1
 
 Add *--verbose* for more detailed output.
 
+*pcap* file will be created in the working directory. It can be read by Wireshark for a future analysis.
+
 To do a DNS attack you have to run Python script:
 
 ```bash
@@ -64,6 +66,9 @@ Where:
 
 *REDIRECTTOIP* - The IP where the attack will be redirected to, e.g. your Kali Apache2 server with a prepared page.
 
+## Note
+
+NetfilterQueue is not working in Python 3.11.
 
 ## License
 
