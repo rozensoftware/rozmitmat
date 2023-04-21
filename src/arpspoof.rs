@@ -40,7 +40,37 @@ impl ArpSpoof
 
         *my_ip
     }
-        
+
+    fn check_macs(&self, mac_a: &Option<[u8; 6]>, mac_b: &Option<[u8; 6]>, own_mac_addr: &Option<[u8; 6]>) -> Option<String>
+    {
+        if mac_a == mac_b 
+        {
+            return Some("Target and gateway have the same mac address".to_string());
+        }
+
+        if mac_a == own_mac_addr 
+        {
+            return Some("Target has the same mac address as the interface".to_string());
+        }
+
+        if mac_b == own_mac_addr 
+        {
+            return Some("Gateway has the same mac address as the interface".to_string());
+        }
+
+        if mac_a.is_none()
+        {
+            return Some("Unable to resolve target mac address".to_string());
+        }
+
+        if mac_b.is_none()
+        {
+            return Some("Unable to resolve gateway mac address".to_string());
+        }
+
+        None
+    }
+
     pub fn arp_poisoning(&self,
         own_mac_addr: [u8; 6],
         own_ip_addr: Ipv4Addr,
@@ -55,17 +85,36 @@ impl ArpSpoof
         let capture = pcap_open(self.device.clone(), "arp").unwrap();
         let capture = Arc::new(Mutex::new(capture));
         
-        let mac_a = match util::read_arp_cache(&target_ip.to_string()) 
+        let mac_a = util::read_arp_cache(&target_ip.to_string());
+
+        let mac_a = if mac_a.is_none()
         {
-            Some(mac) => mac,
-            None => self.resolve_mac_addr(capture.clone(), own_mac_addr, own_ip_addr, target_ip).unwrap(),
+            self.resolve_mac_addr(capture.clone(), own_mac_addr, own_ip_addr, target_ip)
+        }
+        else
+        {
+            mac_a
         };
 
-        let mac_b = match util::read_arp_cache(&gateway_ip.to_string()) 
+        let mac_b = util::read_arp_cache(&gateway_ip.to_string());
+
+        let mac_b = if mac_b.is_none()
         {
-            Some(mac) => mac,
-            None => self.resolve_mac_addr(capture.clone(), own_mac_addr, own_ip_addr, gateway_ip).unwrap(),
+            self.resolve_mac_addr(capture.clone(), own_mac_addr, own_ip_addr, gateway_ip)
+        }
+        else
+        {
+            mac_b
         };
+
+        if let Some(e) = self.check_macs(&mac_a, &mac_b, &Some(own_mac_addr)) 
+        {
+            println!("[!] {}", e);
+            return;
+        }
+
+        let mac_a = mac_a.unwrap();
+        let mac_b = mac_b.unwrap();
 
         target_mac.copy_from_slice(&mac_a);
         gateway_mac.copy_from_slice(&mac_b);

@@ -51,6 +51,22 @@ pub fn ip_forward(enable: bool) -> Result<(), Error>
     result
 }
 
+pub fn set_iptables_for_queueing() -> Result<(), Error> 
+{
+    let result = Command::new("iptables")
+        .arg("-I")
+        .arg("FORWARD")
+        .arg("-j")
+        .arg("NFQUEUE")
+        .arg("--queue-num")
+        .arg("1")
+        .output()
+        .expect("failed to execute iptables process");
+
+    println!("[+] iptables: {}", String::from_utf8_lossy(&result.stdout));
+    Ok(())
+}
+
 /// Gets the mac address of a network interface
 /// 
 /// # Arguments

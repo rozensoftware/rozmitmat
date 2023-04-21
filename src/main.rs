@@ -8,6 +8,7 @@ mod arpspoof;
 mod headers;
 mod dns;
 mod http;
+mod dnsspoof;
 
 fn main() 
 {
