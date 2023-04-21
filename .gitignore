@@ -5,3 +5,4 @@
 **/target
 Cargo.lock
 **/__pycache__
+**/hackenv

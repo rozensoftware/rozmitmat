@@ -11,8 +11,8 @@ from scapy.layers.l2 import ARP, Ether
 app_name = "rozdnsspoof"
 app_version = "0.1"
 
-# Reads program arguments
 def arg_parser() -> argparse.Namespace:
+    """Parse command line arguments"""
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--network", required=True, help="Specify the network device name to use")
     parser.add_argument("-g", "--gatewayIP", required=True, help="Specify the gateway IP address")
@@ -64,38 +64,29 @@ def main(args) -> int:
         dns_spoof = DNSSPoof(args.network, args.targetIP, args.domain, args.redirecttoIP)
         dns_thread = dns_spoof.start()
         
-        dns_thread.join()
-        arp_thread.join()
-
-        dns_spoof.stop()
-        arp_poisoning.restore_target()
-        clean_forwarding()
-
         print("\n[*] {} finished .. shouldn't be here :/".format(app_name))
 
     except KeyboardInterrupt:
         print("\n[-] Detected CTRL-C, stopping...")
-
-        dns_spoof.stop()
-        arp_poisoning.stop()
-
-        dns_thread.join()
-        arp_thread.join()
-
-        arp_poisoning.restore_target()
-        clean_forwarding()
         
     except Exception as e:
         print("[-] Exception: {}".format(e))
         exit_code = 1
 
-        dns_spoof.stop()
-        arp_poisoning.stop()
+    finally:
+        if dns_spoof is not None:
+            dns_spoof.stop()
+        if arp_poisoning is not None:
+            arp_poisoning.stop()
 
-        dns_thread.join()
-        arp_thread.join()
+        if dns_thread is not None:
+            dns_thread.join()
+        if arp_thread is not None:
+            arp_thread.join()
 
-        arp_poisoning.restore_target()
+        if arp_poisoning is not None:
+            arp_poisoning.restore_target()
+        
         clean_forwarding()
 
     return exit_code
