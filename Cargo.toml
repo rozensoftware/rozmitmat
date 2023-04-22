@@ -3,9 +3,11 @@ name = "rozmitmat"
 version = "0.1.0"
 edition = "2021"
 authors = ["Rozen Software <rozsoft@wp.pl>"]
-keywords = ["arp", "spoofing", "spying", "sniffer"]
+keywords = ["arp", "dns", "spoofing", "spying", "sniffer"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
+homepage = "https://github.com/rozensoftware/rozmitmat"
+repository = "https://github.com/rozensoftware/rozmitmat.git"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,8 +15,9 @@ readme = "README.md"
 libc = "0.2"
 pcap = "1.0.0"
 ctrlc = "3.2.5"
-clap = { version = "4.2.1", features = ["derive", "cargo"] }
+clap = { version = "4.1.6", features = ["derive", "cargo"] }
 rustdns = "0.4.0"
+nfq = "0.2.5"
 
 [profile.release]
 strip = true

@@ -1,5 +1,5 @@
 import os
-import netfilterqueue
+from netfilterqueue import NetfilterQueue
 import threading
 from scapy.all import IP, DNS, DNSQR, DNSRR
 from scapy.layers.inet import IP, UDP
@@ -42,10 +42,13 @@ class DNSSPoof:
     def __run(self):
         self.run = True
 
+        queue = NetfilterQueue()
+        queue.bind(0, self.process_packet)
+
         while self.run:
-            queue = netfilterqueue.NetfilterQueue()
-            queue.bind(0, self.process_packet)
             queue.run()
+
+        queue.unbind()
 
     def start(self) -> threading.Thread:
         """Starts the DNS spoofing"""
