@@ -64,7 +64,7 @@ def main(args) -> int:
         dns_spoof = DNSSPoof(args.network, args.targetIP, args.domain, args.redirecttoIP)
         dns_thread = dns_spoof.start()
         
-        print("\n[*] {} finished .. shouldn't be here :/".format(app_name))
+        print("\n[!] {} finished .. shouldn't be here :/".format(app_name))
 
     except KeyboardInterrupt:
         print("\n[-] Detected CTRL-C, stopping...")
@@ -88,6 +88,7 @@ def main(args) -> int:
             arp_poisoning.restore_target()
         
         clean_forwarding()
+        print("[*] {} stopped".format(app_name))
 
     return exit_code
 
@@ -98,5 +99,4 @@ if __name__ == "__main__":
         print("[-] Please run as root")
         sys.exit(1)
 
-    print("[*] {} stopped".format(app_name))
     sys.exit(main(args))

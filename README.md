@@ -66,10 +66,6 @@ Where:
 
 *REDIRECTTOIP* - The IP where the attack will be redirected to, e.g. your Kali Apache2 server with a prepared page.
 
-## Note
-
-NetfilterQueue is not working in Python 3.11.
-
 ## License
 
 This project is licensed under either of
