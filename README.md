@@ -23,9 +23,15 @@ For Python part:
 Install:
 
 ```bash
-sudo apt-get install build-essential python3-dev libnetfilter-queue-dev
-pip3 install NetfilterQueue
+sudo apt-get install build-essential python3-dev libnetfilter-queue-dev scapy
+sudo pip3 install NetfilterQueue
 pip3 install scapy
+```
+
+Note - NetfilterQueue must be installed system-wide. If you're using a Python environment run the command:
+
+```bash
+sudo pip3 install --break-system-packages NetfilterQueue
 ```
 
 Note - Python version does an ARP spoof attack also.

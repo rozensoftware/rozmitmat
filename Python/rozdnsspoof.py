@@ -64,6 +64,9 @@ def main(args) -> int:
         dns_spoof = DNSSPoof(args.network, args.targetIP, args.domain, args.redirecttoIP)
         dns_thread = dns_spoof.start()
         
+        arp_thread.join()
+        dns_thread.join()
+
         print("\n[!] {} finished .. shouldn't be here :/".format(app_name))
 
     except KeyboardInterrupt:
@@ -79,8 +82,6 @@ def main(args) -> int:
         if arp_poisoning is not None:
             arp_poisoning.stop()
 
-        if dns_thread is not None:
-            dns_thread.join()
         if arp_thread is not None:
             arp_thread.join()
 

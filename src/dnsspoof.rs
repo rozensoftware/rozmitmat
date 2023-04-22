@@ -8,8 +8,6 @@ fn process_message(msg: &mut nfq::Message) -> Verdict
 
     let mut data = msg.get_payload();
 
-//check if it has DNSRR layer
-
 
     verdict
 }
