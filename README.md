@@ -57,12 +57,10 @@ Add *--verbose* for more detailed output.
 To do a DNS attack you have to run Python script:
 
 ```bash
-sudo rozdnsspoof.py -n NETWORK -g GATEWAYIP -t TARGETIP -d DOMAIN -r REDIRECTTOIP
+sudo rozdnsspoof.py -g GATEWAYIP -t TARGETIP -d DOMAIN -r REDIRECTTOIP
 ```
 
 Where:
-
-*NETWORK* - A name of your network device
 
 *GATEWAY* - The IP of a router (e.g. 192.168.0.1)
 

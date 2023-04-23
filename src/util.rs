@@ -1,5 +1,3 @@
-//#![allow(dead_code)]
-
 use std::fs::{File, OpenOptions};
 use std::io::{Error, Read, Write};
 use std::process::Command;
@@ -51,21 +49,41 @@ pub fn ip_forward(enable: bool) -> Result<(), Error>
     result
 }
 
+/// Sets iptables for queueing
+/// 
+/// # Returns
+/// 
+/// * `Result<(), Error>` - Result of the operation
 pub fn set_iptables_for_queueing() -> Result<(), Error> 
 {
-    let result = Command::new("iptables")
+    Command::new("iptables")
         .arg("-I")
         .arg("FORWARD")
         .arg("-j")
         .arg("NFQUEUE")
         .arg("--queue-num")
-        .arg("1")
+        .arg("0")
         .output()
         .expect("failed to execute iptables process");
 
-    println!("[+] iptables: {}", String::from_utf8_lossy(&result.stdout));
     Ok(())
 }
+
+/// Resets iptables
+///
+/// # Returns
+/// 
+/// * `Result<(), Error>` - Result of the operation
+pub fn reset_iptables() -> Result<(), Error> 
+{
+    Command::new("iptables")
+        .arg("-F")
+        .output()
+        .expect("failed to execute iptables process");
+
+    Ok(())
+} 
+
 
 /// Gets the mac address of a network interface
 /// 
@@ -89,6 +107,9 @@ pub fn get_interface_mac_addr(interface_name: &str) -> [u8; 6]
             path, e
         ),
     };
+
+    //remove quotes from mac_address_buf
+    mac_addr_buf = mac_addr_buf.replace("\"", "");
 
     string_to_mac(mac_addr_buf.trim())
 }
@@ -162,16 +183,45 @@ pub(crate) fn read_protocol_type(data: &[u8]) -> u16
     u16::from_be_bytes(array)
 }
 
-///Check if the packet is TCP
+/// Check is it a MAC address
 /// # Arguments
-/// * `data` - The packet data
+/// * `mac` - The MAC address
 /// # Returns
-/// * `bool` - True if the packet is TCP (IPv4)
-// pub fn is_tcp_packet(data: &[u8]) -> bool
-// {
-//     let protocol_type = read_protocol_type(data);
-//     protocol_type == 0x0800
-// }
+/// * `bool` - True if it is a MAC address
+/// # Example
+/// ```
+/// use arp_spoof::utils::is_mac_address;
+/// assert_eq!(is_mac_address("00:00:00:00:00:00"), true);
+/// assert_eq!(is_mac_address("00:00:00:00:00:0"), false);
+/// assert_eq!(is_mac_address("00:00:00:00:00:0g"), false);
+/// ```
+pub fn is_mac_address(mac: &str) -> bool
+{
+    const MAC_SEGMENTS_LEN: usize = 6;
+
+    let mac = mac.split(':').collect::<Vec<&str>>();
+    if mac.len() != MAC_SEGMENTS_LEN
+    {
+        return false;
+    }
+
+    for octet in mac 
+    {
+        if octet.len() != 2 
+        {
+            return false;
+        }
+
+        if !octet.chars().all(|c| c.is_ascii_hexdigit()) 
+        {
+            return false;
+        }
+    }
+
+    true
+}
+
+
 
 ///Reads MAC address from ARP cache
 /// # Arguments
@@ -199,9 +249,14 @@ pub fn read_arp_cache(ip: &str) -> Option<[u8; 6]>
 
         let line = line.split_whitespace().collect::<Vec<&str>>();
 
-        if line[0] == ip 
-        {
-            return Some(string_to_mac(line[2]));
+        if line[0] == ip
+        {            
+            if is_mac_address(line[2]) 
+            {
+                return Some(string_to_mac(line[2]));
+            }
+            
+            return None;
         }
     }
 
