@@ -51,7 +51,7 @@ pub fn run(target_ip: String, domain: String, running: &Arc<AtomicBool>) -> Resu
     match queue.bind(QUEUE_NUMBER)
     {
         Ok(_) => (),
-        Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Error binding queue {}", e)))
+        Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Error binding queue: {}", e)))
     };
         
     loop 
@@ -61,8 +61,13 @@ pub fn run(target_ip: String, domain: String, running: &Arc<AtomicBool>) -> Resu
             Ok(m) => m,
             Err(e) => 
             {
-                println!("[!] Error receiving message: {}", e);
-                continue;
+                match queue.unbind(QUEUE_NUMBER)
+                {
+                    Ok(_) => (),
+                    Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Error unbinding queue: {}", e)))
+                };
+                
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Error receiving message: {}", e)))
             }
         };
 
@@ -84,7 +89,7 @@ pub fn run(target_ip: String, domain: String, running: &Arc<AtomicBool>) -> Resu
             match queue.unbind(QUEUE_NUMBER)
             {
                 Ok(_) => (),
-                Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Error unbinding queue {}", e)))
+                Err(e) => return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("Error unbinding queue: {}", e)))
             };
             
             break;

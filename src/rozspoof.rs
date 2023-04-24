@@ -168,7 +168,7 @@ impl RozSpoof
         let dom = self.domain.clone();
         let red_to = self.redirect_to.clone();
 
-        thread::spawn(move ||{
+        thread::spawn(move || {
             let res: bool = match dnsspoof::run(red_to, dom, &r2)
             {
                 Ok(_) => true,
@@ -188,13 +188,12 @@ impl RozSpoof
                 Err(e) => 
                 {
                     println!("[!] Unable to reset iptables: {}", e);
-                    return;
                 }
             }
 
-            if res == false
+            if res 
             {
-                return;
+                println!("[+] Dnsspoof finished");
             }
         });
 
