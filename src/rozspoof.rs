@@ -6,6 +6,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use pcap::Device;
 
+use crate::dnsspoof::DNSSpoof;
 use crate::{dns, http, dnsspoof};
 use crate::headers::{ArpHeader, ArpType, IpHeader, Ethernet};
 use crate::util::{mac_to_string, pcap_open, self};
@@ -14,24 +15,22 @@ pub struct RozSpoof
 {
     device: Device,
     verbose: bool,
-    domain: String,
-    redirect_to: String,
+    dns_spoof: DNSSpoof,
 }
 
 impl RozSpoof
 {
-    pub fn new(interface_name: String, verbose: bool, domain: String, redirect_to: String) -> RozSpoof
+    pub fn new(interface_name: &String, verbose: bool, domain: &String, redirect_to: &String) -> RozSpoof
     {
         //Create a device
         let all_devices = Device::list().expect("Unable to get device list");
-        let d = all_devices.iter().find(|d| d.name == interface_name).expect("Unable to find device");
+        let d = all_devices.iter().find(|d| d.name == *interface_name).expect("Unable to find device");
 
         RozSpoof
         {
             device: d.clone(),
             verbose,
-            domain,
-            redirect_to,
+            dns_spoof: DNSSpoof::new(domain.clone(), redirect_to.clone()),
         }
     }
 
@@ -73,6 +72,44 @@ impl RozSpoof
         }
 
         None
+    }
+
+    fn run_dns_spoof(&self, running: &Arc<AtomicBool>) -> bool
+    {
+        println!("[*] Setting iptables for queueing ...");
+
+        match util::set_iptables_for_queueing()
+        {
+            Ok(_) => {},
+            Err(e) => 
+            {
+                println!("[!] Unable to set iptables: {}", e);
+                return false;
+            }
+        }
+
+        let r2 = running.clone();
+        let dns_spoof_data = self.dns_spoof.clone();
+
+        thread::spawn(move || {
+            let res: bool = match dnsspoof::run(&dns_spoof_data, &r2)
+            {
+                Ok(_) => true,
+                Err(e) => 
+                {
+                    println!("[-] Unable to run dnsspoof: {}", e);
+                    r2.store(false, Ordering::SeqCst);
+                    false
+                }
+            };
+
+            if res 
+            {
+                println!("[+] Dnsspoof finished");
+            }
+        });
+
+        true
     }
 
     fn log_traffic(&self, target_ip: &Ipv4Addr, running: &Arc<AtomicBool>)
@@ -152,50 +189,10 @@ impl RozSpoof
             self.log_traffic(&target_ip, &running);
         }
     
-        println!("[*] Setting iptables for queueing ...");
-
-        match util::set_iptables_for_queueing()
+        if !self.run_dns_spoof(&running)
         {
-            Ok(_) => {},
-            Err(e) => 
-            {
-                println!("[!] Unable to set iptables: {}", e);
-                return;
-            }
+            return;
         }
-
-        let r2 = running.clone();
-        let dom = self.domain.clone();
-        let red_to = self.redirect_to.clone();
-
-        thread::spawn(move || {
-            let res: bool = match dnsspoof::run(red_to, dom, &r2)
-            {
-                Ok(_) => true,
-                Err(e) => 
-                {
-                    println!("[-] Unable to run dnsspoof: {}", e);
-                    r2.store(false, Ordering::SeqCst);
-                    false
-                }
-            };
-
-            println!("[*] Resetting iptables ... ");
-
-            match util::reset_iptables()
-            {
-                Ok(_) => {},
-                Err(e) => 
-                {
-                    println!("[!] Unable to reset iptables: {}", e);
-                }
-            }
-
-            if res 
-            {
-                println!("[+] Dnsspoof finished");
-            }
-        });
 
         let mut cap = capture.lock().unwrap();
 

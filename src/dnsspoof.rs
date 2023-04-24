@@ -2,7 +2,26 @@ use std::{sync::atomic::{AtomicBool, Ordering}, sync::Arc};
 use nfq::{Queue, Verdict};
 use pyo3::{types::PyTuple, prelude::*};
 
-fn process_message(msg: &mut nfq::Message, target_ip: String, domain_name: String) -> Verdict
+#[derive(Clone)]
+pub struct DNSSpoof
+{
+    pub domain: String,
+    pub redirect_to: String,
+}
+
+impl DNSSpoof
+{
+    pub fn new(domain: String, redirect_to: String) -> DNSSpoof
+    {
+        DNSSpoof
+        {
+            domain,
+            redirect_to,
+        }
+    }
+}
+
+fn process_message(msg: &mut nfq::Message, redirect_to_ip: String, domain_name: String) -> Verdict
 {
     let verdict = Verdict::Accept;
     let data = msg.get_payload();
@@ -10,10 +29,9 @@ fn process_message(msg: &mut nfq::Message, target_ip: String, domain_name: Strin
     let py_app = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Python/pythonfuncs.py"));
     let from_python = Python::with_gil(|py| -> Result<Vec<u8>, PyErr>{
         let app: Py<PyAny> = PyModule::from_code(py, py_app, "pythonfuncs.py", "pythonfuncs")?
-            .getattr("process_packet")?
-            .into();
+            .getattr("process_packet")?.into();
 
-        let args = PyTuple::new(py, &[domain_name.to_object(py), target_ip.to_object(py), data.to_object(py)]);
+        let args = PyTuple::new(py, &[domain_name.to_object(py), redirect_to_ip.to_object(py), data.to_object(py)]);
         let run = app.call1(py, args)?.extract::<Vec<u8>>(py)?;
         Ok(run)
     });
@@ -36,7 +54,7 @@ fn process_message(msg: &mut nfq::Message, target_ip: String, domain_name: Strin
     verdict
 }
 
-pub fn run(target_ip: String, domain: String, running: &Arc<AtomicBool>) -> Result<(), std::io::Error>
+pub fn run(dns_spoof: &DNSSpoof, running: &Arc<AtomicBool>) -> Result<(), std::io::Error>
 {
     const QUEUE_NUMBER: u16 = 0;
 
@@ -71,7 +89,7 @@ pub fn run(target_ip: String, domain: String, running: &Arc<AtomicBool>) -> Resu
             }
         };
 
-        let verdict = process_message(&mut msg, target_ip.clone(), domain.clone());
+        let verdict = process_message(&mut msg, dns_spoof.redirect_to.clone(), dns_spoof.domain.clone());
 
         msg.set_verdict(verdict);
         match queue.verdict(msg)

@@ -45,7 +45,7 @@ fn main()
     }
 
     //Create arp spoof object
-    let arp_spoof = rozspoof::RozSpoof::new(interface_name.clone(), verbose == "1", domain.clone(), redirect_to.clone());
+    let arp_spoof = rozspoof::RozSpoof::new(&interface_name, verbose == "1", &domain, &redirect_to);
 
     //Read own ip
     let my_ip = arp_spoof.get_own_ip();
@@ -80,6 +80,17 @@ fn main()
 
     //Clean up everything and exit
     util::ip_forward(false).expect("Unable to disable ip forwarding");
+    
+    println!("[*] Resetting iptables ... ");
+
+    match util::reset_iptables()
+    {
+        Ok(_) => {},
+        Err(e) => 
+        {
+            println!("[!] Unable to reset iptables: {}", e);
+        }
+    }
 
     arp_spoof.run_arp_cleanup( 
         target_mac, 
