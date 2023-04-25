@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 use pcap::Device;
 
 use crate::dnsspoof::DNSSpoof;
@@ -119,7 +119,7 @@ impl RozSpoof
         let log_cap_filter = format!("host {}", target_ip);
         let log_file = PathBuf::from(CAP_FILE_NAME);
 
-        println!("[*] Saving captured packets as {} ...", log_file.display());
+        println!("[*] Saving captured packets to {} file ...", log_file.display());
         
         let mut log_cap = pcap_open(self.device.clone(), &log_cap_filter).unwrap();
         
@@ -188,7 +188,11 @@ impl RozSpoof
         {
             self.log_traffic(&target_ip, &running);
         }
-    
+        else 
+        {
+            println!("[*] Traffic logging disabled");
+        }
+
         if !self.run_dns_spoof(&running)
         {
             return;
@@ -278,9 +282,14 @@ impl RozSpoof
             let max_fails = 4;
             let mut fail_counter = 0;
 
+            //get current time in ms
+            let start_time = SystemTime::now();
+            
             loop 
             {
-                if fail_counter >= max_fails 
+                const WAIT_TIME: u64 = 5;
+
+                if fail_counter >= max_fails || start_time.elapsed().unwrap().as_secs() >= WAIT_TIME
                 {
                     println!("[!] -> {} seems to be offline", ip_addr);
                     return None;
@@ -388,19 +397,18 @@ pub fn log_traffic_pcap(cap: &mut pcap::Capture<pcap::Active>, log_file: &Path, 
         savefile.write(&packet);
         savefile.flush()?;
 
-        print_dns_info(&packet);
-
-        if let Some(c) = http::get_http_body(&packet.data)
-        {
-            if c.len() > 0
-            {
-                println!("[*] HTTP Body: {}", c);
-            }
-        }
-
         if verbose 
         {
             print_src_dst_address(&packet);
+            print_dns_info(&packet);
+
+            if let Some(c) = http::get_http_body(&packet.data)
+            {
+                if c.len() > 0
+                {
+                    println!("[*] HTTP Body: {}", c);
+                }
+            }
         }
 
         if last_print.elapsed() > print_threshold 

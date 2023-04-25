@@ -40,7 +40,9 @@ sudo ./rozmitmat --interface eth0 --target 192.168.0.22 --gateway 192.168.0.1 --
 
 *redirectto* is the IP address where the domain address will be redirected to
 
-Add *--verbose* for more detailed output.
+Add *--verbose (-v)* for more detailed output. Works the best in conjuction with the *-l* option.
+
+Add *--log (-l)* for saving pcap file with the traffic; with *-v* option shows data like: DNS requests, source and destination addresses, HTTP body.
 
 You can write of course also like this:
 
@@ -48,7 +50,12 @@ You can write of course also like this:
 sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -d example.com -r 192.168.0.1
 ```
 
-*pcap* file will be created in the working directory. It can be read by Wireshark for a future analysis.
+*pcap* file will be created in the working directory if *--log* parameter has been specified. It can be read by Wireshark for a future analysis.
+
+## Note
+
+I found that DNS spoofing not working well on my box. That's probably the case of a router type - on some it works on other might not.
+I invite you to take a part in this project if you'd like to help.
 
 ## License
 

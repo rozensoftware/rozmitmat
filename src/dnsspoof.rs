@@ -5,8 +5,8 @@ use pyo3::{types::PyTuple, prelude::*};
 #[derive(Clone)]
 pub struct DNSSpoof
 {
-    pub domain: String,
-    pub redirect_to: String,
+    domain: String,
+    redirect_to: String,
 }
 
 impl DNSSpoof
@@ -42,6 +42,7 @@ fn process_message(msg: &mut nfq::Message, redirect_to_ip: String, domain_name: 
         {
             if d.len() > 0
             {
+                println!("[*] Packet modified");
                 msg.set_payload(d);
             }
         },
