@@ -1,8 +1,8 @@
 # rozmitmat
 
-Version: 0.1.0
+Version: 0.1.0 (Work in progress, not for production yet)
 
-This is a Rust implementation of an ARP spoof attack and Python implementation of a DNS spoof attack..
+This is a Rust implementation of an ARP and DNS spoof attack.
 
 Rozmitmat is a vision of a hacking tool I am developing for a knowledge gathering about how network and Linux/Windows systems work.
 
@@ -10,20 +10,8 @@ It is working on Linux only.
 
 ## Building
 
-For Rust part:
-
-Install libpcap-dev:
-
 ```bash
-sudo apt-get install libpcap-dev
-```
-
-For Python part:
-
-Install:
-
-```bash
-sudo apt-get install build-essential python3-dev libnetfilter-queue-dev scapy
+sudo apt-get install libpcap-dev build-essential python3-dev libnetfilter-queue-dev scapy
 sudo pip3 install NetfilterQueue
 pip3 install scapy
 ```
@@ -34,14 +22,12 @@ Note - NetfilterQueue must be installed system-wide. If you're using a Python en
 sudo pip3 install --break-system-packages NetfilterQueue
 ```
 
-Note - Python version does an ARP spoof attack also.
-
 ## Usage
 
 To prepare attacks based on MITM run rozmitmat:
 
 ```bash
-sudo ./rozmitmat --interface eth0 --target 192.168.0.22 --gateway 192.168.0.1
+sudo ./rozmitmat --interface eth0 --target 192.168.0.22 --gateway 192.168.0.1 --domain example.com --redirectto 192.168.0.1
 ```
 
 *interface* is the name of the network interface you want to use as the input device
@@ -50,27 +36,26 @@ sudo ./rozmitmat --interface eth0 --target 192.168.0.22 --gateway 192.168.0.1
 
 *gateway* is the router IP
 
-Add *--verbose* for more detailed output.
+*domain* is the domain you'd like to spoof, e.g.: bing.com
 
-*pcap* file will be created in the working directory. It can be read by Wireshark for a future analysis.
+*redirectto* is the IP address where the domain address will be redirected to
 
-To do a DNS attack you have to run Python script:
+Add *--verbose (-v)* for more detailed output. Works the best in conjuction with the *-l* option.
+
+Add *--log (-l)* for saving pcap file with the traffic; with *-v* option shows data like: DNS requests, source and destination addresses, HTTP body.
+
+You can write of course also like this:
 
 ```bash
-sudo rozdnsspoof.py -n NETWORK -g GATEWAYIP -t TARGETIP -d DOMAIN -r REDIRECTTOIP
+sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -d example.com -r 192.168.0.1
 ```
 
-Where:
+*pcap* file will be created in the working directory if *--log* parameter has been specified. It can be read by Wireshark for a future analysis.
 
-*NETWORK* - A name of your network device
+## Note
 
-*GATEWAY* - The IP of a router (e.g. 192.168.0.1)
-
-*TARGETIP* - The IP of the target machine
-
-*DOMAIN* - The domain name you'd like to spoof, e.g. bing.com
-
-*REDIRECTTOIP* - The IP where the attack will be redirected to, e.g. your Kali Apache2 server with a prepared page.
+I found that DNS spoofing not working well on my box. That's probably the case of a router type - on some it works on other might not.
+I invite you to take a part in this project if you'd like to help.
 
 ## License
 
@@ -80,6 +65,10 @@ Apache License, Version 2.0, (LICENSE-APACHE or <http://www.apache.org/licenses/
 MIT license (LICENSE-MIT or <http://opensource.org/licenses/MIT>)
 at your option.
 
+## Disclaimer
+
+The author of this code is not responsible for the incorrect operation of the presented code and/or for its incorrect use. The code presented in this project is intended to serve only to learn programming.
+
 ## Contributing / Feedback
 
 I am always glad to learn from anyone.
@@ -87,6 +76,4 @@ If you want to contribute, you are more than welcome to be a part of the project
 
 Any kind of feedback is welcome!
 
-
-The work is based on the (https://github.com/gcarq/arp-spoof) repository.
-
+The work is based on the (<https://github.com/gcarq/arp-spoof>) repository.

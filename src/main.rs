@@ -4,7 +4,7 @@ use std::{net::Ipv4Addr, sync::{Arc, atomic::AtomicBool, atomic::Ordering}};
 use clap::{arg, Command, Arg};
 
 mod util;
-mod arpspoof;
+mod rozspoof;
 mod headers;
 mod dns;
 mod http;
@@ -20,13 +20,19 @@ fn main()
         .arg(arg!(--interface <VALUE>).required(true).short('i').help("Interface name"))
         .arg(arg!(--target <VALUE>).required(true).short('t').help("Target IP address"))
         .arg(arg!(--gateway <VALUE>).required(true).short('g').help("Gateway IP address"))
+        .arg(arg!(--domain <VALUE>).required(true).short('d').help("Domain address e.g. example.com"))
+        .arg(arg!(--redirectto <VALUE>).required(true).short('r').help("Redirect domain address to IP address"))
+        .arg(Arg::new("log").short('l').long("log").default_value("0").help("Log packets to pcap file"))
         .arg(Arg::new("verbose").short('v').long("verbose").default_value("0").help("Verbose mode"))
         .get_matches();
 
     let interface_name = args.get_one::<String>("interface").unwrap();
     let target_ip = args.get_one::<String>("target").unwrap();
     let gateway_ip = args.get_one::<String>("gateway").unwrap();
+    let domain = args.get_one::<String>("domain").unwrap();
+    let redirect_to = args.get_one::<String>("redirectto").unwrap();
     let verbose = args.get_one::<String>("verbose").unwrap();
+    let log = args.get_one::<String>("log").unwrap();
 
     if verbose == "0"
     {
@@ -41,7 +47,7 @@ fn main()
     }
 
     //Create arp spoof object
-    let arp_spoof = arpspoof::ArpSpoof::new(interface_name.clone(), verbose == "1");
+    let arp_spoof = rozspoof::RozSpoof::new(&interface_name, verbose == "1", &domain, &redirect_to);
 
     //Read own ip
     let my_ip = arp_spoof.get_own_ip();
@@ -49,7 +55,7 @@ fn main()
 
     //Read own MAC
     let my_mac = util::get_interface_mac_addr(&interface_name);    
-    println!("[*] My MAC: {:?}", util::mac_to_string(&my_mac));
+    println!("[*] My MAC: {}", util::mac_to_string(&my_mac));
 
     util::ip_forward(true).expect("Unable to enable ip forwarding");
 
@@ -65,17 +71,28 @@ fn main()
     }).expect("Error setting Ctrl-C handler");
 
     //Main job
-    arp_spoof.arp_poisoning(
+    arp_spoof.run(
         my_mac, 
         my_ip, 
         target_ip.parse::<Ipv4Addr>().unwrap().clone(), 
         gateway_ip.parse::<Ipv4Addr>().unwrap().clone(),
         &mut target_mac, &mut gateway_mac,         
-        true,
+        log == "1",
         &running);
 
     //Clean up everything and exit
     util::ip_forward(false).expect("Unable to disable ip forwarding");
+    
+    println!("[*] Resetting iptables ... ");
+
+    match util::reset_iptables()
+    {
+        Ok(_) => {},
+        Err(e) => 
+        {
+            println!("[!] Unable to reset iptables: {}", e);
+        }
+    }
 
     arp_spoof.run_arp_cleanup( 
         target_mac, 
