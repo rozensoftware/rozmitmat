@@ -21,7 +21,7 @@ impl DNSSpoof
     }
 }
 
-fn process_message(msg: &mut nfq::Message, redirect_to_ip: String, domain_name: String) -> Verdict
+fn process_dns_spoof(msg: &mut nfq::Message, redirect_to_ip: String, domain_name: String) -> Verdict
 {
     let verdict = Verdict::Accept;
     let data = msg.get_payload();
@@ -90,7 +90,7 @@ pub fn run(dns_spoof: &DNSSpoof, running: &Arc<AtomicBool>) -> Result<(), std::i
             }
         };
 
-        let verdict = process_message(&mut msg, dns_spoof.redirect_to.clone(), dns_spoof.domain.clone());
+        let verdict = process_dns_spoof(&mut msg, dns_spoof.redirect_to.clone(), dns_spoof.domain.clone());
 
         msg.set_verdict(verdict);
         match queue.verdict(msg)
