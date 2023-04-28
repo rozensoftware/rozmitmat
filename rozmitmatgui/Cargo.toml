@@ -1,0 +1,20 @@
+[package]
+name = "rozmitmatgui"
+version = "0.1.0"
+edition = "2021"
+authors = ["Rozen Software <rozsoft@wp.pl>"]
+keywords = ["arp", "dns", "spoofing", "spying", "sniffer"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/rozensoftware/rozmitmat"
+repository = "https://github.com/rozensoftware/rozmitmat.git"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+egui = "0.21.0"
+eframe = "0.21.3"
+
+[profile.release]
+strip = true
+panic = "abort"
