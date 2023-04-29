@@ -14,6 +14,7 @@ repository = "https://github.com/rozensoftware/rozmitmat.git"
 [dependencies]
 egui = "0.21.0"
 eframe = "0.21.3"
+memmap2 = "0.5.10"
 
 [profile.release]
 strip = true
