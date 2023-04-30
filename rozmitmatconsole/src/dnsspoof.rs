@@ -19,6 +19,16 @@ impl DNSSpoof
             redirect_to,
         }
     }
+
+    pub fn get_domain(&self) -> &String
+    {
+        &self.domain
+    }
+
+    pub fn get_redirect_to(&self) -> &String
+    {
+        &self.redirect_to
+    }
 }
 
 fn process_dns_spoof(msg: &mut nfq::Message, redirect_to_ip: String, domain_name: String) -> Verdict

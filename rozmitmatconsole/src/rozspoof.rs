@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 use pcap::Device;
 
 use crate::dnsspoof::DNSSpoof;
@@ -97,7 +97,7 @@ impl RozSpoof
                 Ok(_) => true,
                 Err(e) => 
                 {
-                    println!("[-] Unable to run dnsspoof: {}", e);
+                    println!("[!] Unable to run dnsspoof: {}", e);
                     r2.store(false, Ordering::SeqCst);
                     false
                 }
@@ -193,9 +193,16 @@ impl RozSpoof
             println!("[*] Traffic logging disabled");
         }
 
-        if !self.run_dns_spoof(&running)
+        if self.dns_spoof.get_domain() != "none" && self.dns_spoof.get_redirect_to() != "none" 
         {
-            return;
+            if !self.run_dns_spoof(&running)
+            {
+                return;
+            }
+        }
+        else
+        {
+            println!("[*] Dnsspoof disabled");
         }
 
         let mut cap = capture.lock().unwrap();
@@ -281,15 +288,10 @@ impl RozSpoof
         let join_handle = thread::spawn(move || {
             let max_fails = 4;
             let mut fail_counter = 0;
-
-            //get current time in ms
-            let start_time = SystemTime::now();
             
             loop 
             {
-                const WAIT_TIME: u64 = 5;
-
-                if fail_counter >= max_fails || start_time.elapsed().unwrap().as_secs() >= WAIT_TIME
+                if fail_counter >= max_fails
                 {
                     println!("[!] -> {} seems to be offline", ip_addr);
                     return None;
@@ -297,6 +299,7 @@ impl RozSpoof
 
                 let mut cap = scoped_capture.lock().unwrap();
                 
+                //This is blocking
                 match cap.next_packet() 
                 {
                     Ok(packet) => {

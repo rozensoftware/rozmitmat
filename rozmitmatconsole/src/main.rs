@@ -20,8 +20,8 @@ fn main()
         .arg(arg!(--interface <VALUE>).required(true).short('i').help("Interface name"))
         .arg(arg!(--target <VALUE>).required(true).short('t').help("Target IP address"))
         .arg(arg!(--gateway <VALUE>).required(true).short('g').help("Gateway IP address"))
-        .arg(arg!(--domain <VALUE>).required(true).short('d').help("Domain address e.g. example.com"))
-        .arg(arg!(--redirectto <VALUE>).required(true).short('r').help("Redirect domain address to IP address"))
+        .arg(Arg::new("domain").short('d').long("domain").default_value("none").help("Domain address to spoof e.g. example.com"))
+        .arg(Arg::new("redirectto").short('r').long("redirectto").default_value("none").help("Redirect domain address to IP address"))
         .arg(Arg::new("log").short('l').long("log").default_value("0").help("Log packets to pcap file"))
         .arg(Arg::new("verbose").short('v').long("verbose").default_value("0").help("Verbose mode"))
         .get_matches();
@@ -34,16 +34,16 @@ fn main()
     let verbose = args.get_one::<String>("verbose").unwrap();
     let log = args.get_one::<String>("log").unwrap();
 
-    if verbose == "0"
-    {
-        println!("Verbose mode is disabled");
-    }
-
     //check if we are root
     if unsafe { libc::geteuid() } != 0
     {
         println!("You must be root to run this program");
         return;
+    }
+
+    if verbose == "0"
+    {
+        println!("Verbose mode is disabled");
     }
 
     //Create arp spoof object
