@@ -58,10 +58,11 @@ sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -d example.com -r 192.16
 ![rozmitmatgui](https://github.com/rozensoftware/rozmitmat/blob/master/rozmitmatgui.jpg)
 
 It uses egui (https://github.com/emilk/egui)
+You have to copy rozmitmat to a rozmitmatgui's folder.
 
 ## Note
 
-I found that DNS spoofing not working well on my box. That's probably the case of a router type - on some it works on other might not.
+I found that DNS spoofing implemented here not working well. Seems like only DNS requests based on UDP protocol could be spoofed.
 I invite you to take a part in this project if you'd like to help.
 
 ## License
