@@ -5,7 +5,7 @@ Version: 0.1.0 (Work in progress, not for production yet)
 This is a Rust implementation of an ARP and DNS spoof attack.
 
 Rozmitmat is a vision of a hacking tool I am developing for a knowledge gathering about how network and Linux/Windows systems work.
-
+The project consists of two programs: rozmitmat which does an actual work and rozmitmatgui which is a simple GUI app.
 It is working on Linux only.
 
 ## Building
@@ -51,6 +51,13 @@ sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -d example.com -r 192.16
 ```
 
 *pcap* file will be created in the working directory if *--log* parameter has been specified. It can be read by Wireshark for a future analysis.
+
+
+## GUI
+
+![rozmitmatgui](https://github.com/rozensoftware/rozmitmat/blob/master/rozmitmatgui.jpg)
+
+It uses ![egui](https://github.com/emilk/egui)
 
 ## Note
 

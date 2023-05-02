@@ -1,7 +1,6 @@
-use std::{net::Ipv4Addr, mem};
+use std::{mem, net::Ipv4Addr};
 
-pub struct IpHeader
-{
+pub struct IpHeader {
     pub version: u8,
     pub ihl: u8,
     pub tos: u8,
@@ -16,12 +15,9 @@ pub struct IpHeader
     pub dest_ip: Ipv4Addr,
 }
 
-impl IpHeader
-{
-    pub fn new() -> IpHeader
-    {
-        IpHeader
-        {
+impl IpHeader {
+    pub fn new() -> IpHeader {
+        IpHeader {
             version: 0,
             ihl: 0,
             tos: 0,
@@ -37,8 +33,7 @@ impl IpHeader
         }
     }
 
-    pub fn from_raw(bytes: &[u8]) -> IpHeader
-    {
+    pub fn from_raw(bytes: &[u8]) -> IpHeader {
         let mut ip_header = IpHeader::new();
 
         ip_header.version = bytes[0] >> 4;
@@ -60,45 +55,37 @@ impl IpHeader
 
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub struct Ethernet 
-{
+pub struct Ethernet {
     pub dest_mac: [u8; 6],   /* Target hardware address */
     pub source_mac: [u8; 6], /* Sender hardware address */
     pub ether_type: u16,     /* Ethernet type           */
 }
 
-impl Ethernet 
-{
-    pub fn new(dest_mac: [u8; 6], source_mac: [u8; 6]) -> Ethernet 
-    {
-        Ethernet 
-        {
+impl Ethernet {
+    pub fn new(dest_mac: [u8; 6], source_mac: [u8; 6]) -> Ethernet {
+        Ethernet {
             dest_mac,
             source_mac,
             ether_type: u16::to_be(0x0806),
         }
     }
 
-    pub fn from_raw(ethernet_header: &[u8]) -> Option<Ethernet> 
-    {
-        if ethernet_header.len() < 14 
-        {
+    pub fn from_raw(ethernet_header: &[u8]) -> Option<Ethernet> {
+        if ethernet_header.len() < 14 {
             return None;
         }
 
         let mut array = [0u8; 14];
-    
-        for (&x, p) in ethernet_header.iter().zip(array.iter_mut()) 
-        {
+
+        for (&x, p) in ethernet_header.iter().zip(array.iter_mut()) {
             *p = x;
         }
-    
+
         unsafe { Some(mem::transmute::<[u8; 14], Ethernet>(array)) }
     }
 }
 
-pub enum ArpType 
-{
+pub enum ArpType {
     ArpRequest,
     ArpReply,
 }
@@ -107,8 +94,7 @@ pub enum ArpType
 /* Values are stored as big endian                      */
 #[derive(Debug, Clone)]
 #[repr(C)]
-pub struct ArpHeader 
-{
+pub struct ArpHeader {
     pub ethernet: Ethernet,  /* Ethernet frame          */
     pub hardware_type: u16,  /* Hardware Type           */
     pub protocol_type: u16,  /* Protocol Type           */
@@ -121,23 +107,20 @@ pub struct ArpHeader
     pub dest_ip: [u8; 4],    /* Target IP address       */
 }
 
-impl ArpHeader 
-{
+impl ArpHeader {
     pub fn new(
         arp_type: ArpType,
         source_mac: [u8; 6],
         source_ip: Ipv4Addr,
         dest_mac: [u8; 6],
-        dest_ip: Ipv4Addr) -> ArpHeader 
-    {
-        let op_code: u16 = match arp_type 
-        {
+        dest_ip: Ipv4Addr,
+    ) -> ArpHeader {
+        let op_code: u16 = match arp_type {
             ArpType::ArpRequest => 1,
             ArpType::ArpReply => 2,
         };
 
-        ArpHeader 
-        {
+        ArpHeader {
             ethernet: Ethernet::new(dest_mac, source_mac),
             hardware_type: u16::to_be(0x1),    // Ethernet
             protocol_type: u16::to_be(0x0800), // IPv4
@@ -151,26 +134,22 @@ impl ArpHeader
         }
     }
 
-    pub fn from_raw(arp_header: &[u8]) -> Option<ArpHeader> 
-    {
-        if arp_header.len() < 42 
-        {
+    pub fn from_raw(arp_header: &[u8]) -> Option<ArpHeader> {
+        if arp_header.len() < 42 {
             // ethernet (14) + arp (28)
             return None;
         }
 
         let mut array = [0u8; 42];
-    
-        for (&x, p) in arp_header.iter().zip(array.iter_mut()) 
-        {
+
+        for (&x, p) in arp_header.iter().zip(array.iter_mut()) {
             *p = x;
         }
-    
+
         unsafe { Some(mem::transmute::<[u8; 42], ArpHeader>(array)) }
     }
 
-    pub fn to_raw(&self) -> [u8; 42] 
-    {
+    pub fn to_raw(&self) -> [u8; 42] {
         unsafe { mem::transmute_copy::<ArpHeader, [u8; 42]>(self) }
     }
 }
