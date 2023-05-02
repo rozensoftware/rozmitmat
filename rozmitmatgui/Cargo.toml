@@ -1,0 +1,22 @@
+[package]
+name = "rozmitmatgui"
+version = "0.1.0"
+edition = "2021"
+authors = ["Rozen Software <rozsoft@wp.pl>"]
+keywords = ["arp", "dns", "spoofing", "spying", "sniffer"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/rozensoftware/rozmitmat"
+repository = "https://github.com/rozensoftware/rozmitmat.git"
+
+[dependencies]
+egui = "0.21.0"
+eframe = "0.21.3"
+sysinfo = "0.28.4"
+
+[profile.release]
+strip = true        #Strip symbols
+opt-level = "s"     #Optimize for size
+lto = true          #Enable link time optimization
+codegen-units = 1   #Max size reduction optimizations
+panic = "abort"
