@@ -57,7 +57,7 @@ sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -d example.com -r 192.16
 
 ![rozmitmatgui](https://github.com/rozensoftware/rozmitmat/blob/master/rozmitmatgui.jpg)
 
-It uses ![egui](https://github.com/emilk/egui)
+It uses egui (https://github.com/emilk/egui)
 
 ## Note
 
