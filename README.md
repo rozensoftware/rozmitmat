@@ -1,30 +1,25 @@
 # rozmitmat
 
-Version: 0.1.0 (Work in progress, not for production yet)
+Version: 0.1.0
 
 This is a Rust implementation of an ARP and DNS spoof attack.
 
 Rozmitmat is a vision of a hacking tool I am developing for a knowledge gathering about how network and Linux/Windows systems work.
 The project consists of two programs: rozmitmat which does an actual work and rozmitmatgui which is a simple GUI app.
-It is working on Linux only.
+For packets manipulation the program uses an external function written in Python with a powerfull package called Scapy. Rozmitmat executes this function which is much simpler than trying doing the same in Rust.
+
+Those apps work on Linux only.
 
 ## Building
 
 ```bash
 sudo apt-get install libpcap-dev build-essential python3-dev libnetfilter-queue-dev scapy
-sudo pip3 install NetfilterQueue
 pip3 install scapy
-```
-
-Note - NetfilterQueue must be installed system-wide. If you're using a Python environment run the command:
-
-```bash
-sudo pip3 install --break-system-packages NetfilterQueue
 ```
 
 ## Usage
 
-To prepare attacks based on MITM run rozmitmat:
+To execute ARP-DNS attack based on MITM run rozmitmat:
 
 ```bash
 sudo ./rozmitmat --interface eth0 --target 192.168.0.22 --gateway 192.168.0.1 --domain example.com --redirectto 192.168.0.1
@@ -50,6 +45,16 @@ You can write of course also like this:
 sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -d example.com -r 192.168.0.1
 ```
 
+If you only want to spoof ARP:
+
+```bash
+sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -v 1 -l 1
+```
+
+In this case a DNS spoof attack will not be executed. Now you're a man in the middle and you can use other tools for more advanced actions.
+
+CTRL-C will stop execution. The program will try to reverse changes: clean iptables and set original ARP data.
+
 *pcap* file will be created in the working directory if *--log* parameter has been specified. It can be read by Wireshark for a future analysis.
 
 
@@ -57,8 +62,11 @@ sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -d example.com -r 192.16
 
 ![rozmitmatgui](https://github.com/rozensoftware/rozmitmat/blob/master/rozmitmatgui.jpg)
 
+Right click on the Output windows to see a sub-menu.
+
 It uses egui (https://github.com/emilk/egui)
-You have to copy rozmitmat to a rozmitmatgui's folder.
+
+You have to copy rozmitmat to a rozmitmatgui's folder. Remember to run rozmitmatgui as root with *sudo* command or *su*.
 
 ## Note
 
@@ -75,7 +83,7 @@ at your option.
 
 ## Disclaimer
 
-The author of this code is not responsible for the incorrect operation of the presented code and/or for its incorrect use. The code presented in this project is intended to serve only to learn programming.
+The author of this code is not responsible for the incorrect operation of the presented code and/or for its incorrect use. The code presented in this project is intended to serve only to learn programming. :)
 
 ## Contributing / Feedback
 

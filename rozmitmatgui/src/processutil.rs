@@ -1,5 +1,22 @@
 use sysinfo::{PidExt, ProcessExt, Signal, System, SystemExt};
 
+/// Gets the pid of a process with the given name. Uses sysyinfo crate.
+/// 
+/// # Arguments
+/// 
+/// * `name` - The name of the process to get the pid of.
+/// 
+/// # Example
+/// 
+/// ```
+/// use rozmitmat::processutil::get_pid_by_name;
+/// 
+/// let pid = get_pid_by_name("firefox");
+/// ```
+/// 
+/// # Returns
+/// 
+/// * `Option<u32>` - The pid of the process if it exists.
 pub fn get_pid_by_name(name: &str) -> Option<u32> {
     let mut ret = None;
     let sys = System::new_all();

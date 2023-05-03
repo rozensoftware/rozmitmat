@@ -13,6 +13,11 @@ const FULL_APP_NAME: &str = "Rozmitmat - Rozen MITM Attack Tool";
 const WINDOW_WIDTH: f32 = 600.0;
 const WINDOW_HEIGHT: f32 = 400.0;
 
+#[cfg(target_os = "windows")]
+fn main() {
+    panic!("This program is not supported on Windows.");
+}
+
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(WINDOW_WIDTH, WINDOW_HEIGHT)),
@@ -26,6 +31,7 @@ fn main() -> Result<(), eframe::Error> {
     )
 }
 
+/// A main window GUI builder
 impl eframe::App for RozmitmatApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -108,12 +114,28 @@ impl eframe::App for RozmitmatApp {
                 .show(ui.ctx(), |ui| {
                     let str = self.output.lock().unwrap();
                     let txt = str.clone();
+                    drop(str);
                     ui.add(
                         egui::TextEdit::multiline(&mut txt.as_str())
                             .font(egui::FontId::proportional(18.0))
                             .frame(false)
                             .desired_width(f32::INFINITY),
-                    );
+                    )
+                    .context_menu(|ui| {
+                        ui.menu_button("Actions", |ui| {
+                            if ui.button("Save").clicked() {
+                                if let Some(e) = self.save_log(&txt).err() {
+                                    self.last_error = e.to_string();
+                                }
+                                ui.close_menu();
+                            }
+
+                            if ui.button("Clear").clicked() {
+                                self.clear_output();
+                                ui.close_menu();
+                            }
+                        });
+                    });
                 });
         });
     }

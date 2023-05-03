@@ -13,6 +13,11 @@ mod http;
 mod rozspoof;
 mod util;
 
+#[cfg(target_os = "windows")]
+fn main() {
+    panic!("This program is not supported on Windows.");
+}
+
 fn main() {
     // Get command parameters
     let args = Command::new("rozmitmat")

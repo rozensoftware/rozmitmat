@@ -1,3 +1,4 @@
+use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
@@ -10,6 +11,7 @@ use crate::{
 };
 
 const ROZMITMAT_CONSOLE_NAME: &str = "rozmitmat";
+const ROZMITMAT_LOG_FILE: &str = "rozmitmat.log";
 
 #[derive(Clone)]
 pub struct RozmitmatApp {
@@ -48,6 +50,7 @@ impl Default for RozmitmatApp {
 }
 
 impl RunSpoof for RozmitmatApp {
+    /// Runs rozmimtmat command
     fn start(&mut self) {
         let redirect_ip = if self.is_dns_spoof_checked {
             self.redirect_ip.clone()
@@ -130,9 +133,9 @@ impl RunSpoof for RozmitmatApp {
                 }
 
                 for line in err_lines {
-                    let mut str = safe_output.lock().unwrap();
-                    *str += &line.unwrap();
-                    *str += "\n";
+                    let mut output = safe_output.lock().unwrap();
+                    *output += &line.unwrap();
+                    *output += "\n";
                 }
             }
 
@@ -142,6 +145,7 @@ impl RunSpoof for RozmitmatApp {
         });
     }
 
+    /// Stop the running process
     fn stop(&mut self) {
         let mut r = self.running.lock().unwrap();
 
@@ -185,5 +189,26 @@ impl RozmitmatApp {
         }
 
         Ok(())
+    }
+
+    /// Save log to file
+    /// # Arguments
+    /// * `txt` - text to save
+    /// # Returns
+    /// * `Result<(), std::io::Error>` - result
+    pub fn save_log(&self, txt: &str) -> Result<(), std::io::Error> {
+        let mut file = File::create(ROZMITMAT_LOG_FILE)?;
+        file.write_all(str::as_bytes(txt))?;
+        Ok(())
+    }
+
+    /// Clear output
+    /// # Arguments
+    /// * `self` - self
+    /// # Returns
+    /// * `()` - nothing
+    pub fn clear_output(&mut self) {
+        let mut output = self.output.lock().unwrap();
+        *output = String::new();
     }
 }

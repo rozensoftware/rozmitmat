@@ -4,6 +4,15 @@ use std::io::Error as RetErr;
 use std::io::ErrorKind;
 use std::process::Command;
 
+/// Get router ip from /etc/resolv.conf
+/// # Returns
+/// * `Result<(String, String), RetErr>` - result
+/// # Example
+/// ```
+/// use rozmitmat::networkutils::get_router_ip;
+/// 
+/// let (router_ip, interface_name) = get_router_ip().unwrap();
+/// ```
 pub fn get_router_ip() -> Result<(String, String), RetErr> {
     //read output from ip route
     let output = Command::new("ip")
