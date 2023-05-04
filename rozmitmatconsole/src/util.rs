@@ -63,7 +63,45 @@ pub fn set_iptables_for_queueing() -> Result<(), Error> {
         .arg("--queue-num")
         .arg("0")
         .output()
-        .expect("failed to execute iptables process");
+        .expect("failed to execute iptables process for queueing");
+
+    Ok(())
+}
+
+pub fn set_iptables_for_proxy(port: &str) -> Result<(), Error> {
+    println!("[*] Setting iptables for sslstrip/proxy");
+
+    Command::new("iptables")
+        .arg("-t")
+        .arg("nat")
+        .arg("-A")
+        .arg("PREROUTING")
+        .arg("-p")
+        .arg("tcp")
+        .arg("--destination-port")
+        .arg("80")
+        .arg("-j")
+        .arg("REDIRECT")
+        .arg("--to-port")
+        .arg(port)
+        .output()
+        .expect("failed to execute iptables process for sslstrip/proxy");
+
+    Command::new("iptables")
+        .arg("-t")
+        .arg("nat")
+        .arg("-A")
+        .arg("PREROUTING")
+        .arg("-p")
+        .arg("tcp")
+        .arg("--destination-port")
+        .arg("443")
+        .arg("-j")
+        .arg("REDIRECT")
+        .arg("--to-port")
+        .arg(port)
+        .output()
+        .expect("failed to execute iptables process for sslstrip/proxy");
 
     Ok(())
 }
@@ -75,6 +113,13 @@ pub fn set_iptables_for_queueing() -> Result<(), Error> {
 /// * `Result<(), Error>` - Result of the operation
 pub fn reset_iptables() -> Result<(), Error> {
     Command::new("iptables")
+        .arg("-F")
+        .output()
+        .expect("failed to execute iptables process");
+
+    Command::new("iptables")
+        .arg("-t")
+        .arg("nat")
         .arg("-F")
         .output()
         .expect("failed to execute iptables process");

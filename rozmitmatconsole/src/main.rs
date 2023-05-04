@@ -21,9 +21,9 @@ fn main() {
 fn main() {
     // Get command parameters
     let args = Command::new("rozmitmat")
-        .version("rozmitmat 0.1.0")
+        .version("0.1.0")
         .author("Rozen Software <rozsoft@wp.pl>")
-        .about("Spoofing ARP packets")
+        .about("MITM tool")
         .arg(
             arg!(--interface <VALUE>)
                 .required(true)
@@ -57,6 +57,13 @@ fn main() {
                 .help("Redirect domain address to IP address"),
         )
         .arg(
+            Arg::new("proxy")
+                .short('p')
+                .long("proxy")
+                .default_value("0")
+                .help("Redirect HTTP/S traffic to proxy like mitmproxy or sslstrip"),
+        )
+        .arg(
             Arg::new("log")
                 .short('l')
                 .long("log")
@@ -79,6 +86,7 @@ fn main() {
     let redirect_to = args.get_one::<String>("redirectto").unwrap();
     let verbose = args.get_one::<String>("verbose").unwrap();
     let log = args.get_one::<String>("log").unwrap();
+    let proxy = args.get_one::<String>("proxy").unwrap();
 
     //check if we are root
     if unsafe { libc::geteuid() } != 0 {
@@ -91,7 +99,7 @@ fn main() {
     }
 
     //Create arp spoof object
-    let arp_spoof = rozspoof::RozSpoof::new(interface_name, verbose == "1", domain, redirect_to);
+    let arp_spoof = rozspoof::RozSpoof::new(interface_name, verbose == "1", domain, redirect_to, proxy);
 
     //Read own ip
     let my_ip = arp_spoof.get_own_ip();

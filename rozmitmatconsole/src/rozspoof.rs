@@ -8,13 +8,14 @@ use std::time::{Duration, Instant};
 
 use crate::dnsspoof::DNSSpoof;
 use crate::headers::{ArpHeader, ArpType, Ethernet, IpHeader};
-use crate::util::{self, mac_to_string, pcap_open};
+use crate::util::{self, mac_to_string, pcap_open, set_iptables_for_proxy};
 use crate::{dns, dnsspoof, http};
 
 pub struct RozSpoof {
     device: Device,
     verbose: bool,
     dns_spoof: DNSSpoof,
+    proxy_port: String,
 }
 
 impl RozSpoof {
@@ -23,6 +24,7 @@ impl RozSpoof {
         verbose: bool,
         domain: &str,
         redirect_to: &str,
+        proxy_port: &str,
     ) -> RozSpoof {
         //Create a device
         let all_devices = Device::list().expect("Unable to get device list");
@@ -35,6 +37,7 @@ impl RozSpoof {
             device: d.clone(),
             verbose,
             dns_spoof: DNSSpoof::new(domain.to_owned(), redirect_to.to_owned()),
+            proxy_port: proxy_port.to_owned(),
         }
     }
 
@@ -221,6 +224,12 @@ impl RozSpoof {
                 target_ip,
             ),
         ];
+
+        if self.proxy_port != "0" && set_iptables_for_proxy(&self.proxy_port).is_err()
+        {
+            println!("[!] Unable to set iptables for sslstrip/proxy");
+            println!("[-] Proxy disabled");
+        }
 
         println!("[*] Press Ctrl-C to stop");
 

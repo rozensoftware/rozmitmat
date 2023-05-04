@@ -19,7 +19,7 @@ pip3 install scapy
 
 ## Usage
 
-To execute ARP-DNS attack based on MITM run rozmitmat:
+To execute ARP-DNS MITM attack run rozmitmat as:
 
 ```bash
 sudo ./rozmitmat --interface eth0 --target 192.168.0.22 --gateway 192.168.0.1 --domain example.com --redirectto 192.168.0.1
@@ -34,6 +34,8 @@ sudo ./rozmitmat --interface eth0 --target 192.168.0.22 --gateway 192.168.0.1 --
 *domain* is the domain you'd like to spoof, e.g.: bing.com
 
 *redirectto* is the IP address where the domain address will be redirected to
+
+Add *--proxy (-p)* to forward HTTP/S communication to a proxy like mitmproxy. Enter a port number which the proxy is listening on.
 
 Add *--verbose (-v)* for more detailed output. Works the best in conjuction with the *-l* option.
 
@@ -51,9 +53,15 @@ If you only want to spoof ARP:
 sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -v 1 -l 1
 ```
 
-In this case a DNS spoof attack will not be executed. Now you're a man in the middle and you can use other tools for more advanced actions.
+Create forwarding to a proxy:
 
-CTRL-C will stop execution. The program will try to reverse changes: clean iptables and set original ARP data.
+```bash
+sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -v 1 -l 1 -p 8080
+```
+
+In two cases above a DNS spoof attack will not be executed. Now you're a man in the middle and you can use other tools for more advanced actions.
+
+CTRL-C will stop execution. The program will try to reverse changes: clean iptables and set original ARP data. If you have had iptables settings before all will be wiped out, nat also.
 
 *pcap* file will be created in the working directory if *--log* parameter has been specified. It can be read by Wireshark for a future analysis.
 
