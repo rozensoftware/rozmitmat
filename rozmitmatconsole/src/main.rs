@@ -99,7 +99,7 @@ fn main() {
     }
 
     //Create arp spoof object
-    let arp_spoof = rozspoof::RozSpoof::new(interface_name, verbose == "1", domain, redirect_to, proxy == "1");
+    let arp_spoof = rozspoof::RozSpoof::new(interface_name, verbose == "1", domain, redirect_to, proxy);
 
     //Read own ip
     let my_ip = arp_spoof.get_own_ip();

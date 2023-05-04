@@ -11,13 +11,11 @@ use crate::headers::{ArpHeader, ArpType, Ethernet, IpHeader};
 use crate::util::{self, mac_to_string, pcap_open, set_iptables_for_proxy};
 use crate::{dns, dnsspoof, http};
 
-const PROXY_PORT: &str = "8080";
-
 pub struct RozSpoof {
     device: Device,
     verbose: bool,
     dns_spoof: DNSSpoof,
-    proxy: bool,
+    proxy_port: String,
 }
 
 impl RozSpoof {
@@ -26,7 +24,7 @@ impl RozSpoof {
         verbose: bool,
         domain: &str,
         redirect_to: &str,
-        proxy: bool,
+        proxy_port: &str,
     ) -> RozSpoof {
         //Create a device
         let all_devices = Device::list().expect("Unable to get device list");
@@ -39,7 +37,7 @@ impl RozSpoof {
             device: d.clone(),
             verbose,
             dns_spoof: DNSSpoof::new(domain.to_owned(), redirect_to.to_owned()),
-            proxy,
+            proxy_port: proxy_port.to_owned(),
         }
     }
 
@@ -227,7 +225,7 @@ impl RozSpoof {
             ),
         ];
 
-        if self.proxy && set_iptables_for_proxy(PROXY_PORT).is_err()
+        if self.proxy_port != "0" && set_iptables_for_proxy(&self.proxy_port).is_err()
         {
             println!("[!] Unable to set iptables for sslstrip/proxy");
             println!("[-] Proxy disabled");

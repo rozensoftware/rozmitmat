@@ -35,7 +35,7 @@ sudo ./rozmitmat --interface eth0 --target 192.168.0.22 --gateway 192.168.0.1 --
 
 *redirectto* is the IP address where the domain address will be redirected to
 
-Add *--proxy (-p)* to forward HTTP/S communication to a proxy like mitmproxy. Sewn in the code port number is 8080.
+Add *--proxy (-p)* to forward HTTP/S communication to a proxy like mitmproxy. Enter a port number which the proxy is listening on.
 
 Add *--verbose (-v)* for more detailed output. Works the best in conjuction with the *-l* option.
 
@@ -56,7 +56,7 @@ sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -v 1 -l 1
 Create forwarding to a proxy:
 
 ```bash
-sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -v 1 -l 1 -p 1
+sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -v 1 -l 1 -p 8080
 ```
 
 In two cases above a DNS spoof attack will not be executed. Now you're a man in the middle and you can use other tools for more advanced actions.
