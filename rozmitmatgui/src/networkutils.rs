@@ -10,7 +10,7 @@ use std::process::Command;
 /// # Example
 /// ```
 /// use rozmitmat::networkutils::get_router_ip;
-/// 
+///
 /// let (router_ip, interface_name) = get_router_ip().unwrap();
 /// ```
 pub fn get_router_ip() -> Result<(String, String), RetErr> {

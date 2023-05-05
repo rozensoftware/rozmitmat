@@ -59,7 +59,11 @@ impl eframe::App for RozmitmatApp {
                     ui.add(egui::TextEdit::singleline(&mut self.router_ip));
                 });
 
-                ui.checkbox(&mut self.verbose, "Verbose");
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut self.verbose, "Verbose");
+                    ui.label("Proxy port number:");
+                    ui.add(egui::TextEdit::singleline(&mut self.proxy_port));
+                });
 
                 ui.separator();
                 ui.checkbox(&mut self.is_dns_spoof_checked, "DNS Spoof");
