@@ -25,6 +25,7 @@ pub struct RozmitmatApp {
     pub running: Arc<Mutex<bool>>,
     pub last_error: String,
     pub verbose: bool,
+    pub proxy_port: String,
 }
 
 impl Default for RozmitmatApp {
@@ -45,6 +46,7 @@ impl Default for RozmitmatApp {
             running: Arc::new(Mutex::new(false)),
             last_error: String::new(),
             verbose: false,
+            proxy_port: "8080".to_string(),
         }
     }
 }
@@ -75,7 +77,7 @@ impl RunSpoof for RozmitmatApp {
         let safe_output = Arc::clone(&self.output);
         let safe_running = Arc::clone(&self.running);
         let verbose = if self.verbose { "1" } else { "0" };
-
+        let proxy_port = self.proxy_port.clone();
         let roz_data = self.clone();
 
         thread::spawn(move || {
@@ -95,10 +97,12 @@ impl RunSpoof for RozmitmatApp {
                 .arg(verbose)
                 .arg("-l")
                 .arg("1")
+                .arg("-p")
+                .arg(&proxy_port)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
-                .expect("failed to execute rozmitmat command");
+                .expect("failed to execute rozmitmat command. Please copy rozmitmat binary to the same directory as rozmitmatgui");
 
             let mut r = safe_running.lock().unwrap();
             *r = true;
