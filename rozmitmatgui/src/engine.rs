@@ -26,6 +26,7 @@ pub struct RozmitmatApp {
     pub last_error: String,
     pub verbose: bool,
     pub proxy_port: String,
+    pub proxy: bool,
 }
 
 impl Default for RozmitmatApp {
@@ -47,6 +48,7 @@ impl Default for RozmitmatApp {
             last_error: String::new(),
             verbose: false,
             proxy_port: "8080".to_string(),
+            proxy: false,
         }
     }
 }
@@ -77,7 +79,11 @@ impl RunSpoof for RozmitmatApp {
         let safe_output = Arc::clone(&self.output);
         let safe_running = Arc::clone(&self.running);
         let verbose = if self.verbose { "1" } else { "0" };
-        let proxy_port = self.proxy_port.clone();
+        let proxy_port = if self.proxy {
+            self.proxy_port.clone()
+        } else {
+            "0".to_string()
+        };
         let roz_data = self.clone();
 
         thread::spawn(move || {
@@ -168,6 +174,10 @@ impl RunSpoof for RozmitmatApp {
 
 impl RozmitmatApp {
     pub fn check_input(&mut self) -> Result<(), String> {
+        if self.proxy && !self.proxy_port.is_valid_port() {
+            return Err("Proxy port is not valid! Must be in range of 1025-65535".to_string());
+        }
+
         if !self.target_ip.is_valid_ip() {
             return Err("Target IP is not valid!".to_string());
         }

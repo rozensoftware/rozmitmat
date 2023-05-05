@@ -61,7 +61,7 @@ sudo ./rozmitmat -i eth0 -t 192.168.0.22 -g 192.168.0.1 -v 1 -l 1 -p 8080
 
 In two cases above a DNS spoof attack will not be executed. Now you're a man in the middle and you can use other tools for more advanced actions.
 
-CTRL-C will stop execution. The program will try to reverse changes: clean iptables and set original ARP data. If you have had iptables settings before all will be wiped out, nat also.
+CTRL-C will stop execution. The program will try to reverse changes: clean iptables and set original ARP data. If you had a previously set iptables all will be wiped out, nat also.
 
 *pcap* file will be created in the working directory if *--log* parameter has been specified. It can be read by Wireshark for a future analysis.
 
