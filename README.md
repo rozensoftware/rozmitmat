@@ -96,7 +96,7 @@ The author of this code is not responsible for the incorrect operation of the pr
 ## Contributing / Feedback
 
 I am always glad to learn from anyone.
-If you want to contribute, you are more than welcome to be a part of the project! Try to share you thoughts first! Feel free to open a new issue if you want to discuss new ideas.
+If you want to contribute, you are more than welcome to be a part of the project! Try to share your thoughts first! Feel free to open a new issue if you want to discuss new ideas.
 
 Any kind of feedback is welcome!
 
